@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
-  <!-- v=20260917-1456 已完成列表不再显示「重要性 N」数字备注（prTag 移除），priority 仍用于计分不受影响；同步模型沿用 v1421 云端权威+本地编辑即推送。 -->
+  <!-- v=20260917-1505 数字重要性(priority)彻底退出计分：donePoints/migrateLegacyPts/完成提示均不再乘 priorityCoef；计分仅取难度(宵小/恶霸/精锐)+关联目标加成。priority 仅保留为今日怪物号码(排序)，不再影响得分。同步模型沿用 v1421。-->
   <!-- v=20260917-0946 ⚠️回滚危险逻辑：刷新/自动同步改为【只拉云端、绝不反向推本地】，避免旧设备切回前台把旧数据推上去覆盖云端；推送仍由编辑时250ms防抖自动完成。appendix: 9/16数据因v0930的"先推后拉"被回退到9/15，已止损 -->
   <!-- v=20260917-0930 ☰菜单新增「刷新数据」：一键推本地+拉云端最新数据；同步提速（推送防抖700ms→250ms；回到页面/每30秒自动拉云端，输入中不打断；云端无变化时跳过重渲染不闪屏） -->
   <!-- v=20260914-1307 统一所有输入行(add-row)控件样式：等高40px、同圆角同边框、select自定义箭头、手机端输入框独占一行重排；修复移动端因CSS源序导致的单行拥挤错位 -->
@@ -1509,6 +1509,7 @@ async function pullState(){
       cleanupRoutinesInToday(state);
       ["backlog","today","routines","done"].forEach(k=>{ (state[k]||[]).forEach(t=>{ t.priority = normPriority(t.priority); }); });
       migrateLegacyPts(state);
+      recomputeDonePtsV1505(state);
       [...state.backlog,...state.today].forEach(t=>{ if(t.diff==="特殊") t.diff="困难"; });
       if(!("trashKeep" in state)) state.trashKeep=30;
       if(!("activeId" in state)) state.activeId=null;
@@ -1563,6 +1564,7 @@ function importData(file){
       // 旧版 高/中/低 标签或缺失 → 数字重要性（1 最重，默认 5）
       ["backlog","today","routines","done"].forEach(k=>{ (state[k]||[]).forEach(t=>{ t.priority = normPriority(t.priority); }); });
       migrateLegacyPts(state);
+      recomputeDonePtsV1505(state);
       if(payload.ui && typeof payload.ui==="object") localStorage.setItem(UIKEY, JSON.stringify(payload.ui));
       else if(incoming.ui && typeof incoming.ui==="object") localStorage.setItem(UIKEY, JSON.stringify(incoming.ui));
       _pulled=true; save(); renderAll();
@@ -1604,6 +1606,7 @@ function load(){
       // 旧版 高/中/低 标签或缺失 → 数字重要性（1 最重，默认 5）
       ["backlog","today","routines","done"].forEach(k=>{ (s[k]||[]).forEach(t=>{ t.priority = normPriority(t.priority); }); });
       migrateLegacyPts(s);
+      recomputeDonePtsV1505(s);
       if(!("trashKeep" in s)) s.trashKeep=30;
       if(!("activeId" in s)) s.activeId=null;
       /* 迁移：怪物不再有「特殊」属性（晋级已移到目标），存量未完成的特殊怪物降为困难；已完成的保留（历史晋级不受影响） */
@@ -2235,9 +2238,7 @@ function donePoints(d){
   if(typeof d.pts==="number") return d.pts;   /* 已完成记录：用「完成时固化」的得分，改规则不影响历史 */
   const b=points(d.diff); 
   const c = d.goalId ? goalImpCoef(d.goalId) : 1;
-  const base = Math.round(b*c);
-  const pr = priorityCoef(d.priority);
-  return Math.round(base * pr);
+  return Math.round(b*c);   /* 计分只取难度(宵小/恶霸/精锐)与关联目标加成；数字重要性(priority)已取消，不再参与 */
 }
 /* 一次性迁移：把历史已击败怪物的经验值按「旧三档系数」固化。
    旧标签经迁移后 priority 变为 1/5/10，据此反推原系数，避免改规则导致累计分跳变。 */
@@ -2248,11 +2249,27 @@ function migrateLegacyPts(st){
     if(typeof d.pts==="number") return;
     const b=points(d.diff);
     const base=d.goalId?Math.round(b*1.5):b;
-    const pr=(d.priority===1)?1.25 : (d.priority===5)?1.1 : (d.priority===10)?1.0 : priorityCoef(d.priority);
-    d.pts=Math.round(base*pr);
+    d.pts=base;   /* 数字重要性(priority)已取消，不计入历史迁移分 */
   });
   st._ptsMigrated=true;
 }
+
+/* v1505 一次性迁移：数字重要性(priority)彻底退出「已完成」计分。
+   历史已击败怪物若带着旧「重要性系数」加成，统一按新规则（仅难度 + 关联目标加成，不含 priority）重算 d.pts。
+   幂等且只跑一次（_ptsRecomputedV1505 标记），之后保持「完成时固化」原则，未来改规则不再影响历史。
+   若需回退（恢复重要性加成），可借 d.priority 反推：d.pts = round(points(diff)*goalImpCoef(goalId)*priorityCoef(priority))。 */
+function recomputeDonePtsV1505(st){
+  st=st||state;
+  if(st._ptsRecomputedV1505) return;
+  (st.done||[]).forEach(d=>{
+    if(d.promo) return;                        // 特殊目标永久记录不计分
+    const b=points(d.diff);
+    const c=d.goalId?goalImpCoef(d.goalId):1;
+    d.pts=Math.round(b*c);                      // 不含 priorityCoef
+  });
+  st._ptsRecomputedV1505=true;
+}
+
 const GOAL_BONUS = 200;   /* 目标达成一次性奖励 */
 /* 累积经验值 = 全部真实经验值：已击败怪物的实得经验值（含加成，无 promo 虚分）+ 目标达成奖励。经验值统计按实际。 */
 function totalScore(){ return taskScore(); }
@@ -3402,8 +3419,7 @@ function completeTask(id){
   save(); renderToday(); renderDone(); renderExec(); renderGoals(); refreshStats();
   const justEl=document.querySelector('#list-today .item[data-id="'+t.id+'"]'); if(justEl) justEl.classList.add("just-done");
   celebrateTask(doneItem);
-    const pr=priorityCoef(doneItem.priority);
-    toast("完成 +"+donePoints(doneItem)+" 分"+(pr>1?"（重要性 "+normPriority(doneItem.priority)+"）":"")+(doneItem.goalId?"（关联目标）":""),"ok");
+    toast("完成 +"+donePoints(doneItem)+" 分"+(doneItem.goalId?"（关联目标）":"")+"（"+DIFF_LABEL[doneItem.diff]+"）","ok");
 }
 /* 递延：今天仍可见、可照常击败；若当天一直未做，则第二天自动留在/回到当天怪物表（号码届时自动整备） */
 function deferTask(id){
