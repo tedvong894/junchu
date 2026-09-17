@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20260917-0946 ⚠️回滚危险逻辑：刷新/自动同步改为【只拉云端、绝不反向推本地】，避免旧设备切回前台把旧数据推上去覆盖云端；推送仍由编辑时250ms防抖自动完成。appendix: 9/16数据因v0930的"先推后拉"被回退到9/15，已止损 -->
   <!-- v=20260917-0930 ☰菜单新增「刷新数据」：一键推本地+拉云端最新数据；同步提速（推送防抖700ms→250ms；回到页面/每30秒自动拉云端，输入中不打断；云端无变化时跳过重渲染不闪屏） -->
   <!-- v=20260914-1307 统一所有输入行(add-row)控件样式：等高40px、同圆角同边框、select自定义箭头、手机端输入框独占一行重排；修复移动端因CSS源序导致的单行拥挤错位 -->
   <link rel="manifest" href="manifest.json" data-page-node-id="3sLNvHOYTG6uDmR0jo5P0U" />
@@ -1431,7 +1432,7 @@ let state = load();
 rolloverDay();   // 本地数据首次加载即清理历史已击败的当天怪物
 
 /* ---------- 同步 ---------- */
-let _sb=null, _pushTimer=null, _pulled=false, _refreshing=false, _lastCloudJson=null;
+let _sb=null, _pushTimer=null, _pulled=false, _refreshing=false, _lastCloudJson=null, _bootAt=Date.now();
 function sbClient(){
   if(!SYNCCFG.enabled || !SYNCCFG.url || !SYNCCFG.anon || typeof supabase==="undefined") return null;
   if(!_sb){ try{ _sb=supabase.createClient(SYNCCFG.url,SYNCCFG.anon); }catch(e){ return null; } }
@@ -1454,19 +1455,15 @@ function isEditing(){
   const a=document.activeElement;
   return !!(a && (a.tagName==="INPUT" || a.tagName==="TEXTAREA" || a.isContentEditable));
 }
-/* 一键刷新：先把本地未落云的改动立即推上去，再拉云端最新，避免互相覆盖 */
+/* 一键刷新：只从云端【拉取】最新数据，绝不把本地旧状态反向推上去覆盖云端。
+   本地改动由编辑时的 pushState()（250ms 防抖）自动上云，无需在此强推。 */
 async function syncNow(manual){
   if(_refreshing) return;
   const sb=sbClient(); if(!sb){ if(manual) toast("未开启云同步，无云端数据可拉","warn"); return; }
   if(!manual && isEditing()) return;   // 自动刷新不打断输入
+  if(!manual && Date.now()-_bootAt < 3000) return;  // 启动 3 秒内不打自动拉取，先让首拉稳定
   _refreshing=true;
   try{
-    if(_pulled){
-      clearTimeout(_pushTimer);
-      setSync("同步中…");
-      const {error}=await sb.from("workbench_state").upsert({id:SYNCCFG.board,data:state,updated_at:new Date().toISOString()});
-      if(error) throw error;
-    }
     await pullState();
     if(manual) toast("已更新为云端最新数据","ok");
   }catch(e){
