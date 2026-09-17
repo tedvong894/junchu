@@ -15,7 +15,7 @@ self.addEventListener('fetch', e => {
     fetch(req)
       .then(res => {
         const copy = res.clone();
-        caches.open('wb-v8').then(c => c.put(req, copy)).catch(() => {});
+        caches.open('wb-v9').then(c => c.put(req, copy)).catch(() => {});
         return res;
       })
       .catch(() => caches.match(req))
