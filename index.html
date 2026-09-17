@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20260917-1400 同步模型改为【按id合并 本地∪云端 双向不丢】：pullState 拉取后与本地并集（本地优先），合并结果写回云端保证各端收敛；刷新即合并。解决"旧版本点刷新把旧数据推上去覆盖云端"以及"本地新数据推不上云端"两类问题。 -->
   <!-- v=20260917-0946 ⚠️回滚危险逻辑：刷新/自动同步改为【只拉云端、绝不反向推本地】，避免旧设备切回前台把旧数据推上去覆盖云端；推送仍由编辑时250ms防抖自动完成。appendix: 9/16数据因v0930的"先推后拉"被回退到9/15，已止损 -->
   <!-- v=20260917-0930 ☰菜单新增「刷新数据」：一键推本地+拉云端最新数据；同步提速（推送防抖700ms→250ms；回到页面/每30秒自动拉云端，输入中不打断；云端无变化时跳过重渲染不闪屏） -->
   <!-- v=20260914-1307 统一所有输入行(add-row)控件样式：等高40px、同圆角同边框、select自定义箭头、手机端输入框独占一行重排；修复移动端因CSS源序导致的单行拥挤错位 -->
@@ -1455,20 +1456,39 @@ function isEditing(){
   const a=document.activeElement;
   return !!(a && (a.tagName==="INPUT" || a.tagName==="TEXTAREA" || a.isContentEditable));
 }
-/* 一键刷新：只从云端【拉取】最新数据，绝不把本地旧状态反向推上去覆盖云端。
-   本地改动由编辑时的 pushState()（250ms 防抖）自动上云，无需在此强推。 */
+/* 按 id 合并两个 state：并集 + 本地优先；双方数据都不丢（取代"整行覆盖"，避免互相覆盖丢失） */
+function mergeById(local, cloud){
+  const m=new Map();
+  (cloud||[]).forEach(x=>{ if(x&&x.id!=null) m.set(x.id, x); });
+  (local||[]).forEach(x=>{ if(x&&x.id!=null) m.set(x.id, x); });
+  return Array.from(m.values());
+}
+function mergeState(local, cloud){
+  if(!local) return cloud; if(!cloud) return local;
+  const out=Object.assign({}, local);
+  ["backlog","today","done","routines","goals","keydays","trash"].forEach(k=>{ out[k]=mergeById(local[k], cloud[k]); });
+  out.exec=Object.assign({}, cloud.exec||{}, local.exec||{});
+  out.strat={ vision:mergeById(local.strat&&local.strat.vision, cloud.strat&&cloud.strat.vision),
+              strategy:mergeById(local.strat&&local.strat.strategy, cloud.strat&&cloud.strat.strategy),
+              idea:mergeById(local.strat&&local.strat.idea, cloud.strat&&cloud.strat.idea) };
+  out.notes={ biz:mergeById(local.notes&&local.notes.biz, cloud.notes&&cloud.notes.biz),
+              life:mergeById(local.notes&&local.notes.life, cloud.notes&&cloud.notes.life),
+              daily:mergeById(local.notes&&local.notes.daily, cloud.notes&&cloud.notes.daily) };
+  ["activeId","trashKeep","keydaysPinned"].forEach(k=>{ if(k in cloud) out[k]=cloud[k]; });
+  return out;
+}
+/* 一键刷新：与云端【合并】最新数据（本地∪云端，双向不丢），合并结果写回云端保证各端收敛 */
 async function syncNow(manual){
   if(_refreshing) return;
   const sb=sbClient(); if(!sb){ if(manual) toast("未开启云同步，无云端数据可拉","warn"); return; }
   if(!manual && isEditing()) return;   // 自动刷新不打断输入
-  if(!manual && Date.now()-_bootAt < 3000) return;  // 启动 3 秒内不打自动拉取，先让首拉稳定
   _refreshing=true;
   try{
     await pullState();
-    if(manual) toast("已更新为云端最新数据","ok");
+    if(manual) toast("已与云端合并最新数据","ok");
   }catch(e){
     setSync("同步失败");
-    if(manual) toast("刷新失败："+(e.message||e),"warn");
+    if(manual) toast("同步失败："+(e.message||e),"warn");
   }
   _refreshing=false;
 }
@@ -1480,11 +1500,8 @@ async function pullState(){
     if(error) throw error;
     if(data&&data.data&&data.data.backlog){
       const d=data.data;
-      /* 云端数据与上次拉取完全一致时跳过重建，避免无谓重渲染（提速+不闪屏不打字） */
-      const incomingJson=JSON.stringify(d);
-      if(incomingJson===_lastCloudJson && _pulled){ setSync("已同步"); _endBoot(); return; }
-      _lastCloudJson=incomingJson;
-      state=Object.assign({backlog:[],today:[],done:[],activeId:null,exec:{},notes:{},trash:[],trashKeep:30,routines:[],goals:[],keydays:[],keydaysPinned:null},d);
+      /* 合并：本地 ∪ 云端（按 id 并集，本地优先），绝不丢弃任一端数据；合并结果写回云端保证各端收敛 */
+      state=mergeState(state, d);
       state.done=state.done||[]; state.exec=state.exec||{};
       state.notes=state.notes||{};
       state.trash=state.trash||[];
@@ -1493,8 +1510,7 @@ async function pullState(){
       state.strat=state.strat||{vision:[],strategy:[],idea:[]};
       (state.goals||[]).forEach(g=>{ if(g.doneAt && g.type===SPECIAL && !(state.done||[]).some(d=>d.promo && d.goalId===g.id)){ (state.done=state.done||[]).push({id:g.id+"_promo", title:g.name, diff:SPECIAL, promo:true, goalId:g.id, doneAt:g.doneAt}); } });
       dedupePromos(state);
-      cleanupRoutinesInToday(state);   // 防止每日怪物击败记录被恢复后重复出现在当天表
-      // 旧版 高/中/低 标签或缺失 → 数字重要性（1 最重，默认 5）
+      cleanupRoutinesInToday(state);
       ["backlog","today","routines","done"].forEach(k=>{ (state[k]||[]).forEach(t=>{ t.priority = normPriority(t.priority); }); });
       migrateLegacyPts(state);
       [...state.backlog,...state.today].forEach(t=>{ if(t.diff==="特殊") t.diff="困难"; });
@@ -1502,9 +1518,11 @@ async function pullState(){
       if(!("activeId" in state)) state.activeId=null;
       trashPurge();
       rolloverDay();
-      /* 迁移：旧特殊目标补重要性（无 imp 视为旧关联×1.5 语义 → 高），升级目标 v3 */
       (state.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });
       if(state.activeId && !state.exec[state.activeId]) state.exec[state.activeId]={steps:[],tracking:""};
+      /* 合并结果写回云端，保证任意一端的新数据都扩散到所有端 */
+      const {error:upErr}=await sb.from("workbench_state").upsert({id:SYNCCFG.board,data:state,updated_at:new Date().toISOString()});
+      if(upErr) throw upErr;
       _pulled=true; save(); renderAll(); setSync("已同步"); _endBoot();
     } else { _pulled=true; setSync("已同步"); _endBoot(); }
   }catch(e){ setSync("同步失败"); }
