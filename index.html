@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20260917-0930 ☰菜单新增「刷新数据」：一键推本地+拉云端最新数据；同步提速（推送防抖700ms→250ms；回到页面/每30秒自动拉云端，输入中不打断；云端无变化时跳过重渲染不闪屏） -->
   <!-- v=20260914-1307 统一所有输入行(add-row)控件样式：等高40px、同圆角同边框、select自定义箭头、手机端输入框独占一行重排；修复移动端因CSS源序导致的单行拥挤错位 -->
   <link rel="manifest" href="manifest.json" data-page-node-id="3sLNvHOYTG6uDmR0jo5P0U" />
 <link rel="apple-touch-icon" href="icon-192.png" data-page-node-id="Mc44p9nLWYCxOwpgWWfcdc" />
@@ -1111,6 +1112,7 @@
         <button class="reset-link" id="btn-more" title="更多">☰</button>
         <div class="more-menu" id="more-menu" style="display:none" data-page-node-id="572pyyDxj0H17ATWx6EFp2">
           <div class="more-item more-sync" data-page-node-id="KkQCHuvecfGfGrOyH9F8K0"><span id="sync-state-m" data-page-node-id="qHwaHOl3YFtt9yrSNwRMiL">本地</span></div>
+          <div class="more-item" id="more-refresh">🔄 刷新数据</div>
           <div class="more-item" id="more-export" data-page-node-id="pJghlGhtUiqXAt1ncOu8lX">导出备份</div>
           <div class="more-item" id="more-import" data-page-node-id="hVTNATSD9REReldCn0Nf87">导入备份</div>
           <div class="more-item more-danger" id="more-reset" data-page-node-id="2mQLqMlqgseouLgSPgolSN">清空数据</div>
@@ -1429,7 +1431,7 @@ let state = load();
 rolloverDay();   // 本地数据首次加载即清理历史已击败的当天怪物
 
 /* ---------- 同步 ---------- */
-let _sb=null, _pushTimer=null, _pulled=false;
+let _sb=null, _pushTimer=null, _pulled=false, _refreshing=false, _lastCloudJson=null;
 function sbClient(){
   if(!SYNCCFG.enabled || !SYNCCFG.url || !SYNCCFG.anon || typeof supabase==="undefined") return null;
   if(!_sb){ try{ _sb=supabase.createClient(SYNCCFG.url,SYNCCFG.anon); }catch(e){ return null; } }
@@ -1446,7 +1448,32 @@ function pushState(){
       const {error}=await sb.from("workbench_state").upsert({id:SYNCCFG.board,data:state,updated_at:new Date().toISOString()});
       if(error) throw error; setSync("已同步");
     }catch(e){ setSync("同步失败"); }
-  },700);
+  },250);
+}
+function isEditing(){
+  const a=document.activeElement;
+  return !!(a && (a.tagName==="INPUT" || a.tagName==="TEXTAREA" || a.isContentEditable));
+}
+/* 一键刷新：先把本地未落云的改动立即推上去，再拉云端最新，避免互相覆盖 */
+async function syncNow(manual){
+  if(_refreshing) return;
+  const sb=sbClient(); if(!sb){ if(manual) toast("未开启云同步，无云端数据可拉","warn"); return; }
+  if(!manual && isEditing()) return;   // 自动刷新不打断输入
+  _refreshing=true;
+  try{
+    if(_pulled){
+      clearTimeout(_pushTimer);
+      setSync("同步中…");
+      const {error}=await sb.from("workbench_state").upsert({id:SYNCCFG.board,data:state,updated_at:new Date().toISOString()});
+      if(error) throw error;
+    }
+    await pullState();
+    if(manual) toast("已更新为云端最新数据","ok");
+  }catch(e){
+    setSync("同步失败");
+    if(manual) toast("刷新失败："+(e.message||e),"warn");
+  }
+  _refreshing=false;
 }
 async function pullState(){
   const sb=sbClient(); if(!sb) return;
@@ -1456,6 +1483,10 @@ async function pullState(){
     if(error) throw error;
     if(data&&data.data&&data.data.backlog){
       const d=data.data;
+      /* 云端数据与上次拉取完全一致时跳过重建，避免无谓重渲染（提速+不闪屏不打字） */
+      const incomingJson=JSON.stringify(d);
+      if(incomingJson===_lastCloudJson && _pulled){ setSync("已同步"); _endBoot(); return; }
+      _lastCloudJson=incomingJson;
       state=Object.assign({backlog:[],today:[],done:[],activeId:null,exec:{},notes:{},trash:[],trashKeep:30,routines:[],goals:[],keydays:[],keydaysPinned:null},d);
       state.done=state.done||[]; state.exec=state.exec||{};
       state.notes=state.notes||{};
@@ -1540,6 +1571,7 @@ function importData(file){
     document.addEventListener("click", e=>{ if(!moreMenu.contains(e.target) && e.target!==btnMore) moreMenu.style.display="none"; });
   }
   const moreExport=document.getElementById("more-export"); if(moreExport) moreExport.addEventListener("click", ()=>exportData());
+  const moreRefresh=document.getElementById("more-refresh"); if(moreRefresh) moreRefresh.addEventListener("click", ()=>{ moreMenu.style.display="none"; syncNow(true); });
   const moreImport=document.getElementById("more-import"); if(moreImport) moreImport.addEventListener("click", ()=>{ const f=document.getElementById("file-import"); if(f) f.click(); });
   const moreReset=document.getElementById("more-reset"); if(moreReset) moreReset.addEventListener("click", ()=>{ const b=document.getElementById("btn-reset"); if(b) b.click(); });
 })();
@@ -4100,6 +4132,13 @@ setActiveMod(_ui0.active && document.getElementById("p-"+_ui0.active) ? _ui0.act
 if(SYNCCFG.enabled) pullState();
 else _endBoot();                                  // 不走云同步：本地数据渲染完即结束 boot 抑制
 setTimeout(_endBoot, 3000);                       // 兜底：云拉取挂起也不长期阻塞正常升级特效
+
+/* 数据自动保持最新：回到本页立即拉一次 + 每 30 秒后台拉一次（输入中自动跳过，不打断） */
+if(SYNCCFG.enabled){
+  window.addEventListener("focus", ()=>syncNow(false));
+  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") syncNow(false); });
+  setInterval(()=>{ if(document.visibilityState==="visible") syncNow(false); }, 30000);
+}
 
 /* 手机端样式兜底注入：用 JS 在运行时插入带 !important 的样式，防止任何缓存导致旧 flex 布局生效 */
 (function mobileStyleOverride(){
