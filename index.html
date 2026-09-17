@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
-  <!-- v=20260917-1421 同步模型改回【云端为权威 + 本地编辑即推送】，修正 v1400「按id并集·本地优先」无法同步已有任务字段改动（跳过/改标题/优先级等）的致命缺陷。pullState：本地有未上云改动则不采纳云端（先推本地防覆盖）；否则直接采用云端为权威；首拉时把本地离线新增并入云端再采用，避免离线编辑丢失。save() 即置脏并推送。 -->
+  <!-- v=20260917-1456 已完成列表不再显示「重要性 N」数字备注（prTag 移除），priority 仍用于计分不受影响；同步模型沿用 v1421 云端权威+本地编辑即推送。 -->
   <!-- v=20260917-0946 ⚠️回滚危险逻辑：刷新/自动同步改为【只拉云端、绝不反向推本地】，避免旧设备切回前台把旧数据推上去覆盖云端；推送仍由编辑时250ms防抖自动完成。appendix: 9/16数据因v0930的"先推后拉"被回退到9/15，已止损 -->
   <!-- v=20260917-0930 ☰菜单新增「刷新数据」：一键推本地+拉云端最新数据；同步提速（推送防抖700ms→250ms；回到页面/每30秒自动拉云端，输入中不打断；云端无变化时跳过重渲染不闪屏） -->
   <!-- v=20260914-1307 统一所有输入行(add-row)控件样式：等高40px、同圆角同边框、select自定义箭头、手机端输入框独占一行重排；修复移动端因CSS源序导致的单行拥挤错位 -->
@@ -3435,11 +3435,10 @@ function rolloverDay(){
 function doneItemHtml(d){
   const stepsHtml=(d.steps&&d.steps.length)?`<details class="done-detail"><summary>查看步骤（${d.steps.length}）</summary>${d.steps.map((s,i)=>`<div class="dstep"><b>${i+1}. ${esc(s.text)||"（空）"}</b>${s.done?'<span class="dtag">✓已完成</span>':''}${s.idea?`<div class="di">思路：${esc(s.idea)}</div>`:""}</div>`).join("")}${d.tracking?`<div class="dtrack"><b>跟踪：</b>${esc(d.tracking)}</div>`:""}</details>`
     :(d.tracking?`<details class="done-detail"><summary>查看跟踪</summary><div class="dtrack">${esc(d.tracking)}</div></details>`:"");
-  const prTag=(d.priority && priorityCoef(d.priority)>1.0) ? `<span class="meta">重要性 ${normPriority(d.priority)}</span>` : '';
   return `<div class="item compact done-item" data-id="${d.id}" data-sort-key="done">
     <div class="row1">
       ${badge(d.diff)}<div class="title">${esc(d.title)}</div>
-      ${d.diff===SPECIAL?'<span class="pts pro">↑晋级</span>':'<span class="pts">+'+donePoints(d)+(d.goalId?' 🎯':'')+'</span>'}${goalTagHtml(d)}${prTag}<span class="meta">${fmtTime(d.doneAt)}</span>
+      ${d.diff===SPECIAL?'<span class="pts pro">↑晋级</span>':'<span class="pts">+'+donePoints(d)+(d.goalId?' 🎯':'')+'</span>'}${goalTagHtml(d)}<span class="meta">${fmtTime(d.doneAt)}</span>
       <div class="acts">
         <button class="icon-btn" data-act="restore" data-id="${d.id}">↩ 恢复</button>
         <button class="icon-btn" data-act="delDone" data-id="${d.id}">删除</button>
