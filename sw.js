@@ -1,23 +1,65 @@
-// 极简 service worker：仅用于满足 PWA 安装条件 + 离线首屏兜底
-// 策略：导航/同源资源走网络优先并缓存一份；跨域（Supabase、字体）直接透传。
-self.addEventListener('install', e => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+// 生产经营分析系统 - Service Worker
+// 修改此版本号即可强制所有客户端更新缓存
+const CACHE_VERSION = 'v1.30.256';
+const CACHE_NAME = 'production-analysis-' + CACHE_VERSION;
 
-self.addEventListener('fetch', e => {
-  const req = e.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  // 跨域请求直接透传（Supabase / 字体 CDN）
-  if (url.origin !== self.location.origin) return;
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/chart.umd.min.js',
+  '/jspdf.umd.min.js',
+  '/html2canvas.min.js',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png'
+];
 
-  // 同源：网络优先，失败回退缓存
-  e.respondWith(
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  // 清理旧版本缓存
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  // 跨域请求（如 Supabase REST）与非 GET 请求：直接透传，不缓存（Cache API 无法缓存 POST / 跨域响应）
+  let sameOrigin = false;
+  try { sameOrigin = new URL(req.url).origin === self.location.origin; } catch (e) { sameOrigin = false; }
+  if (!sameOrigin || req.method !== 'GET') {
+    event.respondWith(fetch(req));
+    return;
+  }
+  event.respondWith(
     fetch(req)
-      .then(res => {
-        const copy = res.clone();
-        caches.open('wb-v9').then(c => c.put(req, copy)).catch(() => {});
-        return res;
+      .then((networkResponse) => {
+        // 网络请求成功，更新缓存
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(req, clone);
+          }).catch(() => {});
+        }
+        return networkResponse;
       })
-      .catch(() => caches.match(req))
+      .catch(() => {
+        // 网络失败，回退到缓存
+        return caches.match(req);
+      })
   );
 });
