@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20260921-1345 导航区快捷按钮：加回「灵感」快捷按钮（data-mod=idea，显示 idea 计数）；iPhone 竖屏一行放不下时优先隐藏「目标」快捷按钮（fitStats 改用 hide-goal 优先、仍放不下再 hide-routine 隐藏「每日」）；移动端 topbar-stats 改 flex nowrap + 每格 min-width:54px。同步模型沿用 v1421。-->
   <!-- v=20260920-0830 App 图标换为「城楼」（金底+白墙黑瓦多重飞檐城楼，呼应急机处·古代军事中枢）；图标链接缓存穿透 ?v=3→?v=4；sw 缓存 wb-v9→wb-v10。同步模型沿用 v1421。-->
   <!-- v=20260917-1554 UI 精简：①统计卡与模块标签「重大突破」→「今日成长」；②今日成长取消「最新5条」，全部按月折叠（最新月默认展开）；③战略区(愿景/战略/灵感)与商务区取消「主题/标题」输入，只留单个内容输入框（编辑面板同步精简）；④换新 App 图标（成长柱状图 · 品牌渐变）。同步模型沿用 v1421。-->
   <!-- v=20260917-1505 数字重要性(priority)彻底退出计分：donePoints/migrateLegacyPts/完成提示均不再乘 priorityCoef；计分仅取难度(宵小/恶霸/精锐)+关联目标加成。priority 仅保留为今日怪物号码(排序)，不再影响得分。同步模型沿用 v1421。-->
@@ -493,13 +494,14 @@
     .hero-label{font-size:11px}
     .hero-value{font-size:15px; margin-top:2px}
     .score-card .score-n{font-size:19px}
-    /* 6 个统计格（成长/目标/可选/今日/每日/完成）；放不下时 JS 加 .hide-routine 隐藏「每日」回落 5 格 */
+    /* 快捷按钮（成长/灵感/目标/可选/今日/每日/完成）；iPhone 竖屏一行放不下时优先隐藏「目标」，仍放不下再隐藏「每日」 */
     .topbar-stats{
       margin-left:0; width:100%;
-      display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
+      display:flex; flex-wrap:nowrap; overflow:hidden; gap:6px; justify-content:flex-start;
     }
-    .topbar-stats{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}
-    .topbar-stats .stat[data-mod="routine"]{display:none}
+    .topbar-stats .stat{flex:1 1 0; min-width:54px}
+    .topbar-stats.hide-goal   .stat[data-mod="goal"]{display:none}
+    .topbar-stats.hide-routine .stat[data-mod="routine"]{display:none}
     .stat{padding:5px 2px; min-width:0}
     .stat-n{font-size:13px}
     .stat-l{font-size:10px; white-space:nowrap}
@@ -1129,11 +1131,12 @@
       <button class="stat" id="keydays-chip" data-mod="keyday" title="切换倒计日" style="display:none"><span class="stat-n"><span id="kd-chip-days"></span><span id="kd-chip-unit" class="kd-chip-unit"></span></span><span class="stat-l" id="kd-chip-name"></span></button>
       <div class="kd-dropdown" id="kd-dropdown" style="display:none"></div>
       <button class="stat" data-mod="note-daily" data-page-node-id="Ez4F1DHpSXgSFnuIPHmXh8"><span class="stat-n" id="st-daily" data-page-node-id="4kHJeNvMd3mXlaNQ2POMLR">0</span><span class="stat-l" data-page-node-id="uDRyI7anU3GBXBxgCBvIGz">今日成长</span></button>
+      <button class="stat" data-mod="idea" data-page-node-id="idea-stat-1"><span class="stat-n" id="st-idea">0</span><span class="stat-l">灵感</span></button>
       <button class="stat" data-mod="goal" data-page-node-id="HSbr8JKm3FYDYIBVowOFiY"><span class="stat-n" id="st-goal" data-page-node-id="0JN9DzjEkzoojpeCLvRGfw">0</span><span class="stat-l" data-page-node-id="f9WRvudBuixUkBMGlcCnU2">目标</span></button>
       <button class="stat" data-mod="backlog" data-page-node-id="4lzU4DlglJR7rHCxKaDvTR"><span class="stat-n" id="st-back" data-page-node-id="lEZ7oJwZSRigs0ChW3y0X7">0</span><span class="stat-l" data-page-node-id="lltvcAjcuDYcwh7nBBXx2g">可选</span></button>
       <button class="stat" data-mod="today" data-page-node-id="bRDDQcsBYLQLMIMK8Ik3LH"><span class="stat-n" id="st-today" data-page-node-id="Pxxch1z7qsdyLvrwhD1XoE">0</span><span class="stat-l" data-page-node-id="kWn7HkgXL81bH0WFSkUn3r">今日</span></button>
       <button class="stat" data-mod="routine" data-page-node-id="YPvj9H89IUUupBXlgqXA9Q"><span class="stat-n" id="st-routine" data-page-node-id="3vmEUA2GgUYPsDX39Ezr5C">0</span><span class="stat-l" data-page-node-id="gJHmroSA8MfvQvAsuC7Da9">每日</span></button>
-      <!-- 灵感区已移除 -->
+      <!-- 灵感快捷按钮见上方 data-mod="idea" -->
       <button class="stat" data-mod="done" data-page-node-id="OyvdvHeoR33u9HAWBbWRtw"><span class="stat-n" id="st-done" data-page-node-id="fOnpmDDjFoIgQqjiT89Ajx">0</span><span class="stat-l" data-page-node-id="Yhu3tHzNHwsajPl9fXWX7D">完成</span></button>
     </div>
   </header>
@@ -2678,6 +2681,8 @@ function refreshStats(){
   if(goalEl) goalEl.textContent=(state.goals||[]).filter(g=>!g.doneAt).length;
   const dailyEl=document.getElementById("st-daily");
   if(dailyEl) dailyEl.textContent=(state.notes.daily||[]).length;
+  const ideaEl=document.getElementById("st-idea");
+  if(ideaEl) ideaEl.textContent=getNotes("idea").length;
   const execEl2=document.getElementById("st-exec");
   if(execEl2){ execEl2.textContent = execCount(); }
   const sc=totalScore();
@@ -4109,10 +4114,17 @@ document.addEventListener("gesturechange", e=>e.preventDefault());
   const statsBox=document.querySelector(".topbar-stats");
   function fitStats(){
     if(!statsBox) return;
-    if(window.innerWidth>820){ statsBox.classList.remove("hide-routine"); return; }
-    const MIN_CELL=38, GAP=6, n=6;                 // 每格最小可读宽度（目标/可选/今日/每日/完成/执行）
-    const need = MIN_CELL*n + GAP*(n-1);
-    statsBox.classList.toggle("hide-routine", statsBox.clientWidth < need);
+    statsBox.classList.remove("hide-goal","hide-routine");
+    if(window.innerWidth>820) return;
+    const MIN_CELL=54, GAP=6;                      // 每格最小可读宽度（与移动端 .stat min-width:54px 对齐）
+    const visN = ()=> [...statsBox.querySelectorAll(".stat")].filter(s=>s.offsetParent!==null).length;
+    let n = visN();
+    let need = MIN_CELL*n + GAP*(n-1);
+    if(statsBox.clientWidth < need){
+      statsBox.classList.add("hide-goal");          // 一行放不下：优先隐藏「目标」快捷按钮
+      n = visN(); need = MIN_CELL*n + GAP*(n-1);
+      if(statsBox.clientWidth < need) statsBox.classList.add("hide-routine");  // 仍放不下再隐藏「每日」
+    }
   }
   function lock(){
     fitStats();   // 先决定快捷区行数/格数，再量顶栏高度
