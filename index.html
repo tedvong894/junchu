@@ -10,10 +10,11 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20260927-0946 彻底移除任务 priority 相关 UI 与代码：删任务编辑弹窗的 priority 下拉、每日怪物添加行的 priority 下拉、normPriority/priorityCoef/importanceOptions 三函数、今日怪物号码顺延机器(allTodayTasks/todayNextNumber/doneNow/moveNumber/normalizeTodayNumbers)及所有 priority 字段写入；今日怪物排序仍按截止时间+层级，不受影响。同步模型沿用 v1421。-->
   <!-- v=20260921-1345 导航区快捷按钮：加回「灵感」快捷按钮（data-mod=idea，显示 idea 计数）；iPhone 竖屏一行放不下时优先隐藏「目标」快捷按钮（fitStats 改用 hide-goal 优先、仍放不下再 hide-routine 隐藏「每日」）；移动端 topbar-stats 改 flex nowrap + 每格 min-width:54px。同步模型沿用 v1421。-->
   <!-- v=20260920-0830 App 图标换为「城楼」（金底+白墙黑瓦多重飞檐城楼，呼应急机处·古代军事中枢）；图标链接缓存穿透 ?v=3→?v=4；sw 缓存 wb-v9→wb-v10。同步模型沿用 v1421。-->
   <!-- v=20260917-1554 UI 精简：①统计卡与模块标签「重大突破」→「今日成长」；②今日成长取消「最新5条」，全部按月折叠（最新月默认展开）；③战略区(愿景/战略/灵感)与商务区取消「主题/标题」输入，只留单个内容输入框（编辑面板同步精简）；④换新 App 图标（成长柱状图 · 品牌渐变）。同步模型沿用 v1421。-->
-  <!-- v=20260917-1505 数字重要性(priority)彻底退出计分：donePoints/migrateLegacyPts/完成提示均不再乘 priorityCoef；计分仅取难度(宵小/恶霸/精锐)+关联目标加成。priority 仅保留为今日怪物号码(排序)，不再影响得分。同步模型沿用 v1421。-->
+  <!-- v=20260917-1505 priority 数字系数彻底退出计分：donePoints/migrateLegacyPts/完成提示均不再乘 priorityCoef；计分仅取难度(宵小/恶霸/精锐)+关联目标加成。priority 仅保留为今日怪物号码(排序)，不再影响得分。同步模型沿用 v1421。-->
   <!-- v=20260917-0946 ⚠️回滚危险逻辑：刷新/自动同步改为【只拉云端、绝不反向推本地】，避免旧设备切回前台把旧数据推上去覆盖云端；推送仍由编辑时250ms防抖自动完成。appendix: 9/16数据因v0930的"先推后拉"被回退到9/15，已止损 -->
   <!-- v=20260917-0930 ☰菜单新增「刷新数据」：一键推本地+拉云端最新数据；同步提速（推送防抖700ms→250ms；回到页面/每30秒自动拉云端，输入中不打断；云端无变化时跳过重渲染不闪屏） -->
   <!-- v=20260914-1307 统一所有输入行(add-row)控件样式：等高40px、同圆角同边框、select自定义箭头、手机端输入框独占一行重排；修复移动端因CSS源序导致的单行拥挤错位 -->
@@ -626,14 +627,13 @@
     background-repeat:no-repeat; background-position:right 10px center; background-size:10px 6px;
   }
   /* 中和 add-row 内特殊 select 类，使其与同行控件一致 */
-  .add-row .goal-sel, .add-row .priority-sel, .add-row .diff-sel{
+  .add-row .goal-sel, .add-row .diff-sel{
     max-width:none; font-size:14px; color:var(--ink);
     border:1.5px solid var(--line); border-radius:10px; background-color:#fff;
     padding:0 28px 0 11px;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 5 5-5' fill='none' stroke='%236b7280' stroke-width='1.5'/></svg>");
     background-repeat:no-repeat; background-position:right 10px center; background-size:10px 6px;
   }
-  .add-row .priority-sel{min-width:60px; text-align:center; text-align-last:center}
   .add-row button{
     flex:0 0 auto; padding:0 18px; border:none;
     background:linear-gradient(135deg,var(--brand-2),var(--brand)); color:#fff; font-weight:600;
@@ -767,13 +767,6 @@
   .diff-sel.d-c{color:var(--c); border-color:var(--c-bg); background-color:var(--c-bg)}
   .diff-sel.d-h{color:var(--h); border-color:var(--h-bg); background-color:var(--h-bg)}
   .diff-sel.d-s{color:var(--s); border-color:var(--s-bg); background-color:var(--s-bg)}
-  .priority-sel{
-    flex:0 0 auto; font-size:11px; font-weight:700; border-radius:999px;
-    padding:3px 8px; border:1.5px solid var(--line); cursor:pointer; outline:none;
-    -webkit-appearance:none; appearance:none; color:var(--ink2); background:#fff;
-    min-width:24px; text-align:center;
-  }
-  .priority-sel.imp-1,.priority-sel.imp-2,.priority-sel.imp-3{color:#dc2626;font-weight:800;}
   .due-sel{
     flex:0 0 auto; font-size:11px; color:var(--ink2); border:1px solid var(--line);
     border-radius:999px; padding:3px 8px; background:#fff; cursor:pointer; outline:none;
@@ -793,13 +786,6 @@
     flex:0 0 auto; font-size:11px; font-weight:700; color:#7c3aed;
     background:#f3e8ff; border-radius:999px; padding:1px 8px; margin-left:2px;
   }
-  .priority-sel.imp-4,.priority-sel.imp-5,.priority-sel.imp-6{color:#d97706;font-weight:800;}
-  .priority-sel.imp-7,.priority-sel.imp-8,.priority-sel.imp-9{color:#2563eb;font-weight:800;}
-  .priority-sel.imp-10,.priority-sel.imp-11,.priority-sel.imp-12{color:#64748b;font-weight:700;}
-  .priority-sel option.imp-1,.priority-sel option.imp-2,.priority-sel option.imp-3{color:#dc2626;}
-  .priority-sel option.imp-4,.priority-sel option.imp-5,.priority-sel option.imp-6{color:#d97706;}
-  .priority-sel option.imp-7,.priority-sel option.imp-8,.priority-sel option.imp-9{color:#2563eb;}
-  .priority-sel option.imp-10,.priority-sel option.imp-11,.priority-sel option.imp-12{color:#64748b;}
 
   .acts{display:flex; gap:7px; flex-wrap:wrap}
   .icon-btn{
@@ -1313,7 +1299,6 @@
           <div class="add-row" data-page-node-id="ZpGdyAMCrIiZ5MMkjOmpuG">
             <textarea id="in-routine" placeholder="添加一条每日怪物，如：晨跑 30 分钟…" rows="1"></textarea>
             <select id="sel-routine-diff" data-page-node-id="1wYzeZHLpCcvvlG6P1BCkF"><option value="普通" data-page-node-id="4FOMMYhHsRdjGLew4t1k5L">宵小</option><option value="挑战" data-page-node-id="2mHmcQoYemex1whB1DODQ7">恶霸</option><option value="困难" data-page-node-id="6zjCYCq3cNgLGn2sHDHRQP">精锐</option></select>
-            <select id="sel-routine-priority" class="priority-sel imp-5" title="重要性（1 最重，数字越小越重要）" data-page-node-id="JS1CRKLTCZZR2GHjzj8lqs">${importanceOptions(5)}</select>
             <select id="sel-routine-goal" class="goal-sel" title="关联目标（可选）" data-page-node-id="64Urnf0yHwRK6qcgZ2EOUR"></select>
             <button class="btn-primary" id="btn-add-routine" data-page-node-id="VenSaunQyzwMfOCF89pP9V">添加</button>
           </div>
@@ -1509,7 +1494,6 @@ async function pullState(){
       (state.goals||[]).forEach(g=>{ if(g.doneAt && g.type===SPECIAL && !(state.done||[]).some(d=>d.promo && d.goalId===g.id)){ (state.done=state.done||[]).push({id:g.id+"_promo", title:g.name, diff:SPECIAL, promo:true, goalId:g.id, doneAt:g.doneAt}); } });
       dedupePromos(state);
       cleanupRoutinesInToday(state);
-      ["backlog","today","routines","done"].forEach(k=>{ (state[k]||[]).forEach(t=>{ t.priority = normPriority(t.priority); }); });
       migrateLegacyPts(state);
       recomputeDonePtsV1505(state);
       [...state.backlog,...state.today].forEach(t=>{ if(t.diff==="特殊") t.diff="困难"; });
@@ -1563,8 +1547,6 @@ function importData(file){
       state.keydays = state.keydays||[];
       if(!("keydaysPinned" in state)) state.keydaysPinned=null;
       cleanupRoutinesInToday(state);   // 导入备份时也清理每日怪物重复项
-      // 旧版 高/中/低 标签或缺失 → 数字重要性（1 最重，默认 5）
-      ["backlog","today","routines","done"].forEach(k=>{ (state[k]||[]).forEach(t=>{ t.priority = normPriority(t.priority); }); });
       migrateLegacyPts(state);
       recomputeDonePtsV1505(state);
       if(payload.ui && typeof payload.ui==="object") localStorage.setItem(UIKEY, JSON.stringify(payload.ui));
@@ -1605,15 +1587,13 @@ function load(){
     (s.goals||[]).forEach(g=>{ if(g.doneAt && g.type===SPECIAL && !(s.done||[]).some(d=>d.promo && d.goalId===g.id)){ (s.done=s.done||[]).push({id:g.id+"_promo", title:g.name, diff:SPECIAL, promo:true, goalId:g.id, doneAt:g.doneAt}); } });
       dedupePromos(s);
       cleanupRoutinesInToday(s);       // 清理 today 中跟每日怪物重复的记录
-      // 旧版 高/中/低 标签或缺失 → 数字重要性（1 最重，默认 5）
-      ["backlog","today","routines","done"].forEach(k=>{ (s[k]||[]).forEach(t=>{ t.priority = normPriority(t.priority); }); });
       migrateLegacyPts(s);
       recomputeDonePtsV1505(s);
       if(!("trashKeep" in s)) s.trashKeep=30;
       if(!("activeId" in s)) s.activeId=null;
       /* 迁移：怪物不再有「特殊」属性（晋级已移到目标），存量未完成的特殊怪物降为困难；已完成的保留（历史晋级不受影响） */
       [...(s.backlog||[]),...(s.today||[])].forEach(t=>{ if(t.diff==="特殊") t.diff="困难"; });
-      (s.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });   // 目标 v3：老目标补重要性（默认高×1.5）
+      (s.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });   // 目标 v3：老目标补 imp 系数（默认关键×1.5）
       if(s.activeId && !s.exec[s.activeId]) s.exec[s.activeId]={steps:[],tracking:""};
       return s;
     }
@@ -2209,29 +2189,13 @@ function renderAvatar(lv){
 }
 /* 当前等级完全由分数决定（取消特殊晋级后，等级与分数必须对齐） */
 function effLevel(){ return levelOf(totalScore()); }
-/* 怪物重要性：数字排序（1 最重，越大越不重要）。击败经验值系数：第1–3 → 1.5，第4–6 → 1.3，第7–9 → 1.1，第10及以后 → 1.0 */
-function normPriority(v){
-  if(typeof v==="number") return v;
-  if(v==="高") return 1;
-  if(v==="中") return 5;
-  if(v==="低") return 10;
-  const n=parseInt(v,10);
-  return isNaN(n)?5:n;
-}
-function priorityCoef(p){ const n=normPriority(p); return n<=3?1.5 : n<=6?1.3 : n<=9?1.1 : 1.0; }
-function importanceOptions(sel){
-  sel = normPriority(sel);
-  let h="";
-  for(let i=1;i<=12;i++){ h+=`<option value="${i}" class="imp-${i}" ${sel===i?'selected':''}>${i}</option>`; }
-  return h;
-}
-/* 单条已击败怪物的实得经验值：基础经验值 × 优先级加成 × 关联目标重要性加成（1.5/1.25/1，取整）。
-   击败时固化 pts，之后改目标重要性/删目标不影响历史经验值。 */
+/* 单条已击败怪物的实得经验值：基础经验值 × 关联目标加成（1.5/1.25/1，取整）。
+   击败时固化 pts，之后改目标级别/删目标不影响历史经验值。任务 priority 数字系数已彻底废除（不再参与计分）。 */
 function donePoints(d){ 
   if(typeof d.pts==="number") return d.pts;   /* 已完成记录：用「完成时固化」的得分，改规则不影响历史 */
   const b=points(d.diff); 
   const c = d.goalId ? goalImpCoef(d.goalId) : 1;
-  return Math.round(b*c);   /* 计分只取难度(宵小/恶霸/精锐)与关联目标加成；数字重要性(priority)已取消，不再参与 */
+  return Math.round(b*c);   /* 计分只取难度(宵小/恶霸/精锐)与关联目标加成；任务 priority 数字系数已取消，不再参与 */
 }
 /* 一次性迁移：把历史已击败怪物的经验值按「旧三档系数」固化。
    旧标签经迁移后 priority 变为 1/5/10，据此反推原系数，避免改规则导致累计分跳变。 */
@@ -2242,15 +2206,15 @@ function migrateLegacyPts(st){
     if(typeof d.pts==="number") return;
     const b=points(d.diff);
     const base=d.goalId?Math.round(b*1.5):b;
-    d.pts=base;   /* 数字重要性(priority)已取消，不计入历史迁移分 */
+    d.pts=base;   /* 任务 priority 数字系数已取消，不计入历史迁移分 */
   });
   st._ptsMigrated=true;
 }
 
-/* v1505 一次性迁移：数字重要性(priority)彻底退出「已完成」计分。
-   历史已击败怪物若带着旧「重要性系数」加成，统一按新规则（仅难度 + 关联目标加成，不含 priority）重算 d.pts。
+/* v1505 一次性迁移：任务 priority 数字系数彻底退出「已完成」计分。
+   历史已击败怪物若带着旧 priority 系数加成，统一按新规则（仅难度 + 关联目标加成，不含 priority）重算 d.pts。
    幂等且只跑一次（_ptsRecomputedV1505 标记），之后保持「完成时固化」原则，未来改规则不再影响历史。
-   若需回退（恢复重要性加成），可借 d.priority 反推：d.pts = round(points(diff)*goalImpCoef(goalId)*priorityCoef(priority))。 */
+   若需回退（恢复 priority 加成），可借 d.priority 反推：d.pts = round(points(diff)*goalImpCoef(goalId)*priorityCoef(priority))。 */
 function recomputeDonePtsV1505(st){
   st=st||state;
   if(st._ptsRecomputedV1505) return;
@@ -2928,7 +2892,6 @@ function editTaskFields(t, rerender){
   const goals=(state.goals||[]).filter(g=>!g.doneAt || g.id===t.goalId);
   const goalOpts=goals.map(g=>`<option value="${g.id}" ${g.id===t.goalId?'selected':''}>🎯 ${esc(g.name)}</option>`).join("") + `<option value="" ${!t.goalId?'selected':''}>不关联目标</option>`;
   const diff=t.diff || "普通";
-  const priority=t.priority || 5;
   openEditModal({
     title: isR ? "编辑每日怪物" : "编辑怪物",
     bodyBuilder:()=>{
@@ -2940,9 +2903,6 @@ function editTaskFields(t, rerender){
             <option value="挑战" ${diff==='挑战'?'selected':''}>恶霸</option>
             <option value="困难" ${diff==='困难'?'selected':''}>精锐</option>
           </select>
-        </div>
-        <div class="edit-row"><label>重要性（1 最重）</label>
-          <select id="ed-priority">${importanceOptions(priority)}</select>
         </div>
         <div class="edit-row"><label>关联目标</label><select id="ed-goal">${goalOpts}</select></div>
         <div class="edit-row"><label>结果类</label>
@@ -2957,8 +2917,6 @@ function editTaskFields(t, rerender){
         const goalId=root.querySelector("#ed-goal").value || undefined;
         const noSort=!!root.querySelector("#ed-nosort").checked;
         const res={title, diff, goalId, noSort};
-        const pEl=root.querySelector("#ed-priority");
-        if(pEl) res.priority=parseInt(pEl.value,10);
         if(isR){
           const start=root.querySelector("#ed-start").value || dayStr();
           const end=root.querySelector("#ed-end").value || "";
@@ -2985,9 +2943,7 @@ document.getElementById("list-backlog").addEventListener("click",e=>{
   if(b.dataset.act==="toToday"){
     const t=state.backlog.find(x=>x.id===id); if(!t) return;
     state.backlog=state.backlog.filter(x=>x.id!==id);
-    const usedNums=new Set(allTodayTasks().map(x=>normPriority(x.priority)));
-    const num=usedNums.has(normPriority(t.priority)) ? todayNextNumber() : normPriority(t.priority);  // 号码冲突就排最后
-    state.today.push({id:t.id,title:t.title,diff:t.diff,priority:num,fromBack:true,goalId:t.goalId,date:t.date||Date.now()});
+    state.today.push({id:t.id,title:t.title,diff:t.diff,fromBack:true,goalId:t.goalId,date:t.date||Date.now()});
     if(!state.activeId) setActive(t.id);
     renderToday();
     setActiveMod("today");
@@ -3021,62 +2977,6 @@ document.addEventListener("change", e=>{
 });
 
 /* ---------- 模块2 当天怪物 ---------- */
-/* ---------- 重要程度自动顺延：号码全表唯一，每日怪物与普通怪物共用一套号码 ---------- */
-function allTodayTasks(){ return [...(state.today||[]), ...(state.routines||[])]; }
-function todayNextNumber(){ return Math.min(12, allTodayTasks().reduce((m,x)=>Math.max(m, normPriority(x.priority)), 0) + 1); }  // 新怪物排最后，避免重号
-/* 某怪物此刻是否已击败/已跳过（当天表里沉底或隐藏）。这类怪物号码冻结，永不被顺延挪动 */
-function doneNow(x){
-  if(x.done||x.skipped||x.skip) return true;
-  if(x.doneDates){ const st=x.doneDates[dayStr()]; if(st && st!=="skip") return true; }
-  return false;
-}
-/* 挪位语义（等同把卡片拖到新位置）：
-   - 往大改（2→5）：腾出 2 号旧位，把原来 3/4/5 依次前移成 2/3/4，6 及以后不动；
-   - 往小改（5→2）：把原来 2/3/4 后移让位成 3/4/5，目标落到 2，5 以后不动；
-   - 已击败怪物一律不动（号码冻结），挪动路径上撞到它们就跳过，留下的缺号属正常。 */
-function moveNumber(target, newP){
-  newP=Math.max(1, Math.min(12, newP));
-  const oldP=normPriority(target.priority);
-  if(newP===oldP) return;
-  const list=allTodayTasks();
-  const used=new Set(list.filter(x=>x!==target).map(x=>normPriority(x.priority)));
-  used.delete(oldP);                       // 腾出旧位
-  const free=slot=>!used.has(slot);
-  if(newP>oldP){
-    // 旧位之后、新位以内的未击败怪物整体前移补位（从小到大挪，保持相对顺序）
-    const moving=list.filter(x=>x!==target && !doneNow(x) && normPriority(x.priority)>oldP && normPriority(x.priority)<=newP)
-                     .sort((a,b)=>normPriority(a.priority)-normPriority(b.priority));
-    let slot=oldP;
-    moving.forEach(x=>{ while(!free(slot)) slot++; if(slot!==x.priority){ used.delete(normPriority(x.priority)); used.add(slot); x.priority=slot; } slot++; });
-    while(!free(newP) && newP<12) newP++;   // 目标位被已击败怪物占住则顺到后面空位
-  } else {
-    // 新位以内、旧位之前的未击败怪物整体后移让位（从大到小挪）
-    const moving=list.filter(x=>x!==target && !doneNow(x) && normPriority(x.priority)>=newP && normPriority(x.priority)<oldP)
-                     .sort((a,b)=>normPriority(b.priority)-normPriority(a.priority));
-    let slot=oldP;
-    moving.forEach(x=>{ while(!free(slot)) slot--; if(slot!==x.priority){ used.delete(normPriority(x.priority)); used.add(slot); x.priority=slot; } slot--; });
-    while(!free(newP) && newP>1) newP--;    // 目标位被已击败怪物占住则顺到前面空位
-  }
-  target.priority=newP;
-  save();
-}
-/* 兜底整备：未击败怪物号码必须连续无空洞（已击败怪物占用的号除外，缺号只允许来自已击败）。
-   已击败怪物号码冻结不动；未击败怪物按当前顺序紧凑重排，历史空洞/删除残留自动补齐。 */
-function normalizeTodayNumbers(){
-  const dset=new Set(allTodayTasks().filter(doneNow).map(x=>normPriority(x.priority)));
-  const used=new Set(dset);
-  let changed=false, next=1;
-  const todo=allTodayTasks().filter(x=>!doneNow(x) && !x.noSort).sort((a,b)=>
-    normPriority(a.priority)-normPriority(b.priority) || (a.date||a.createdAt||0)-(b.date||b.createdAt||0));
-  todo.forEach(x=>{
-    while(used.has(next)) next++;          // 跳过已击败怪物占用的号
-    if(x.priority!==next){ x.priority=next; changed=true; }
-    used.add(next); next++;
-  });
-  // 结果类·自动击败怪物（如高效睡眠）不占用序号，保持无号置底
-  allTodayTasks().filter(x=>!doneNow(x) && x.noSort).forEach(x=>{ if(x.priority){ x.priority=undefined; changed=true; } });
-  if(changed) save();
-}
 /* 截止时间 "HH:MM" → 分钟数；空/非法 → Infinity（排到同组最后） */
 function dueMin(v){ if(!v) return Infinity; const p=(""+v).split(":"); if(p.length<2) return Infinity; const h=+p[0], m=+p[1]; if(isNaN(h)||isNaN(m)) return Infinity; return h*60+m; }
 /* 当日怪物分层（数字越小越靠上）：
@@ -3128,12 +3028,12 @@ function renderToday(){
   const rStatus=r=>(r.doneDates||{})[ds];
   const routineItems=(state.routines||[]).filter(r=>routineActive(r,ds)).map(r=>{
     const st=rStatus(r);
-    return {kind:'routine', id:r.id, priority:r.priority||5, diff:r.diff, time:r.createdAt||0, skip:st==='skip', done:false, due:r.due||"", defer:false, noSort:!!r.noSort, r};
+    return {kind:'routine', id:r.id, diff:r.diff, time:r.createdAt||0, skip:st==='skip', done:false, due:r.due||"", defer:false, noSort:!!r.noSort, r};
   }).filter(x=> x.skip || !rStatus(x.r));
   // 普通当天怪物视图项
-  const todayItems=filteredToday.map(t=>({kind:'today', id:t.id, priority:t.priority||5, diff:t.diff, time:t.date||0, skip:!!t.skipped, done:!!t.done, due:t.due||"", defer:!!t.deferDate, noSort:!!t.noSort, t}));
+  const todayItems=filteredToday.map(t=>({kind:'today', id:t.id, diff:t.diff, time:t.date||0, skip:!!t.skipped, done:!!t.done, due:t.due||"", defer:!!t.deferDate, noSort:!!t.noSort, t}));
   if(!todayItems.length && !routineItems.length){ el.innerHTML=`<div class="empty">今天还没安排怪物，从②选入或临时添加</div>`; refreshStats(); return; }
-  // 进行中：按截止时间从早到晚；递延/跳过/完成：维持各自层级；结果类独立置底。不再按重要性序号排序
+  // 进行中：按截止时间从早到晚；递延/跳过/完成：维持各自层级；结果类独立置底。不再按 priority 序号排序
   const sorted=[...routineItems, ...todayItems].sort((a,b)=>{
     const ta=todayTier(a), tb=todayTier(b); if(ta!==tb) return ta-tb;
     if(ta===4){ return (b.time||0)-(a.time||0); }
@@ -3201,7 +3101,7 @@ document.getElementById("btn-add-today").addEventListener("click",addToday);
 document.getElementById("in-today").addEventListener("keydown",e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter") addToday(); });
 function addToday(){
   const v=document.getElementById("in-today").value.trim(); if(!v) return;
-  const t={id:uid(),title:v,diff:document.getElementById("sel-diff-today").value||"普通",priority:todayNextNumber(),fromBack:false,goalId:curGoal("sel-goal-today"),date:Date.now()};
+  const t={id:uid(),title:v,diff:document.getElementById("sel-diff-today").value||"普通",fromBack:false,goalId:curGoal("sel-goal-today"),date:Date.now()};
   state.today.push(t); document.getElementById("in-today").value="";
   if(!state.activeId) setActive(t.id);
   save(); renderToday();
@@ -3285,11 +3185,11 @@ function completeRoutine(id){
   r.doneDates=r.doneDates||{};
   if(r.doneDates[ds]) return;
   r.doneDates[ds]="done";
-  state.done.unshift({id:uid(),title:r.title,diff:r.diff,priority:r.priority||5,fromBack:false,doneAt:Date.now(),steps:[],tracking:"",routine:true,routineId:r.id,goalId:r.goalId||""});
+  state.done.unshift({id:uid(),title:r.title,diff:r.diff,fromBack:false,doneAt:Date.now(),steps:[],tracking:"",routine:true,routineId:r.id,goalId:r.goalId||""});
   state.done[0].pts=donePoints(state.done[0]);
   save(); renderToday(); renderDone(); renderRoutines();
   const st=routineStreak(r);
-  const gained=donePoints({diff:r.diff,priority:r.priority||5,goalId:r.goalId||""});
+  const gained=donePoints({diff:r.diff,goalId:r.goalId||""});
   toast("完成 +"+gained+" 分"+(r.goalId?"（关联目标）":"")+(st>1?"，已连续 "+st+" 天 🔥":""),"ok");
 }
 function skipRoutine(id){
@@ -3344,7 +3244,7 @@ function addRoutine(){
   const start=document.getElementById("in-routine-start").value || dayStr();
   const end=document.getElementById("in-routine-end").value || "";
   if(end && end<start){ toast("结束日期不能早于开始日期","warn"); return; }
-  state.routines.push({id:uid(),title:v,diff:document.getElementById("sel-routine-diff").value,priority:parseInt(document.getElementById("sel-routine-priority").value,10)||5,start,end,doneDates:{},createdAt:Date.now(),goalId:curGoal("sel-routine-goal")});
+  state.routines.push({id:uid(),title:v,diff:document.getElementById("sel-routine-diff").value,start,end,doneDates:{},createdAt:Date.now(),goalId:curGoal("sel-routine-goal")});
   inp.value="";
   save(); renderRoutines(); renderToday();
   toast("已添加，每天会自动出现在当天怪物顶部","ok");
@@ -3393,7 +3293,7 @@ function completeTask(id){
     if(!state.exec[id]) return;
     const hist=state.done.find(x=>x.id===id);
     const ex=state.exec[id];
-    const doneItem={id,title:(hist&&hist.title)||id,diff:(hist&&hist.diff)||"普通",priority:(hist&&hist.priority)||5,fromBack:false,goalId:(hist&&hist.goalId)||null,doneAt:Date.now(),steps:ex.steps||[],tracking:ex.tracking||""};
+    const doneItem={id,title:(hist&&hist.title)||id,diff:(hist&&hist.diff)||"普通",fromBack:false,goalId:(hist&&hist.goalId)||null,doneAt:Date.now(),steps:ex.steps||[],tracking:ex.tracking||""};
     state.done.unshift(doneItem);
   state.done[0].pts=donePoints(state.done[0]);
     delete state.exec[id];
@@ -3401,7 +3301,7 @@ function completeTask(id){
     toast("完成","ok"); return;
   }
   const ex=state.exec[id]||{steps:[],tracking:""};
-  const doneItem={id:t.id,title:t.title,diff:t.diff,priority:t.priority||5,fromBack:t.fromBack,goalId:t.goalId,doneAt:Date.now(),steps:ex.steps||[],tracking:ex.tracking||""};
+  const doneItem={id:t.id,title:t.title,diff:t.diff,fromBack:t.fromBack,goalId:t.goalId,doneAt:Date.now(),steps:ex.steps||[],tracking:ex.tracking||""};
   state.done.unshift(doneItem);
   state.done[0].pts=donePoints(state.done[0]);
   delete state.exec[id];              // 完成即退出执行区
@@ -4051,7 +3951,7 @@ document.getElementById("more-reset").addEventListener("click",e=>{
 
 function renderAll(){ renderBacklog(); renderToday(); renderRoutines(); renderDone(); renderExec(); renderAllNotes(); renderAllStrat(); renderTrash(); renderDaily(); renderKeydays(); refreshStats(); }
 if(trashPurge()) save();   // 启动时清理到期的回收站条目
-(state.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });   // 目标 v3：老目标补重要性（默认高×1.5）
+(state.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });   // 目标 v3：老目标补 imp 系数（默认关键×1.5）
 /* 迁移：自动击败的结果类怪物（如高效睡眠）标记为 noSort，独立置底并打符号 */
 (function migrateNoSort(){
   let changed=false;
