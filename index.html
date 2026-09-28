@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
-  <!-- v=20260928-1004 导航区增强：①灵感计数块（沿用既有 st-idea，确认保留）②新增「生活备忘录」导航计数块 data-mod=note-life、显示 getNotes("life").length ③新增「实时日历」导航块 data-mod=calendar，显示当前日期+周几+每秒走动的时分秒 ④手机端(≤820px)隐藏日历块与「可选」块，配合原有 hide-goal/hide-routine 防导航折行；mac 端不隐藏。同步模型沿用 v1421。-->
+  <!-- v=20260928-1025 导航修正：①灵感计数数据源修正 getNotes("idea")->getStrat("idea")（灵感属战略大区，存 state.strat.idea，此前取 state.notes.idea 恒为 0）②日历块去掉秒、只显示时:分，刷新 1s->5s。同步模型沿用 v1421。-->
   <!-- v=20260927-0946 彻底移除任务 priority 相关 UI 与代码：删任务编辑弹窗的 priority 下拉、每日怪物添加行的 priority 下拉、normPriority/priorityCoef/importanceOptions 三函数、今日怪物号码顺延机器(allTodayTasks/todayNextNumber/doneNow/moveNumber/normalizeTodayNumbers)及所有 priority 字段写入；今日怪物排序仍按截止时间+层级，不受影响。同步模型沿用 v1421。-->
   <!-- v=20260921-1345 导航区快捷按钮：加回「灵感」快捷按钮（data-mod=idea，显示 idea 计数）；iPhone 竖屏一行放不下时优先隐藏「目标」快捷按钮（fitStats 改用 hide-goal 优先、仍放不下再 hide-routine 隐藏「每日」）；移动端 topbar-stats 改 flex nowrap + 每格 min-width:54px。同步模型沿用 v1421。-->
   <!-- v=20260920-0830 App 图标换为「城楼」（金底+白墙黑瓦多重飞檐城楼，呼应急机处·古代军事中枢）；图标链接缓存穿透 ?v=3→?v=4；sw 缓存 wb-v9→wb-v10。同步模型沿用 v1421。-->
@@ -2651,7 +2651,7 @@ function refreshStats(){
   const dailyEl=document.getElementById("st-daily");
   if(dailyEl) dailyEl.textContent=(state.notes.daily||[]).length;
   const ideaEl=document.getElementById("st-idea");
-  if(ideaEl) ideaEl.textContent=getNotes("idea").length;
+  if(ideaEl) ideaEl.textContent=getStrat("idea").length;
   const lifeEl=document.getElementById("st-life");
   if(lifeEl) lifeEl.textContent=getNotes("life").length;
   const execEl2=document.getElementById("st-exec");
@@ -2676,10 +2676,10 @@ function tickCalendar(){
   const wd=["周日","周一","周二","周三","周四","周五","周六"][d.getDay()];
   const de=document.getElementById("cal-date"), te=document.getElementById("cal-time");
   if(de) de.textContent=(d.getMonth()+1)+"/"+d.getDate()+" "+wd;
-  if(te) te.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,"0")).join(":");
+  if(te) te.textContent=[d.getHours(),d.getMinutes()].map(n=>String(n).padStart(2,"0")).join(":");
 }
 tickCalendar();
-setInterval(tickCalendar,1000);
+setInterval(tickCalendar,5000);
 
 
 /* 左侧导航的计数徽章 */
