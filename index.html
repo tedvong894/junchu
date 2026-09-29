@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
-  <!-- v=20260928-1516 目标序号排序：goal 加 seq 字段（load 迁移补号、新建=max+1、编辑弹窗可改序号；渲染按 seq 升序排列并显示序号徽标 g-seq）。导航修正(1025)同步保留：灵感计数用 getStrat、日历去秒。同步模型沿用 v1421。-->
+  <!-- v=20260929-0949 目标序号挪位修复：编辑某目标序号=把它挪到该位置，原≥该位置的目标自动顺延重排（moveGoalSeq），不再需手动逐个改；启动 normalizeActiveSeq 保证可见列表连续 1..k 无断号。导航(1025)+序号(1516)同步保留。同步模型沿用 v1421。-->
   <!-- v=20260927-0946 彻底移除任务 priority 相关 UI 与代码：删任务编辑弹窗的 priority 下拉、每日怪物添加行的 priority 下拉、normPriority/priorityCoef/importanceOptions 三函数、今日怪物号码顺延机器(allTodayTasks/todayNextNumber/doneNow/moveNumber/normalizeTodayNumbers)及所有 priority 字段写入；今日怪物排序仍按截止时间+层级，不受影响。同步模型沿用 v1421。-->
   <!-- v=20260921-1345 导航区快捷按钮：加回「灵感」快捷按钮（data-mod=idea，显示 idea 计数）；iPhone 竖屏一行放不下时优先隐藏「目标」快捷按钮（fitStats 改用 hide-goal 优先、仍放不下再 hide-routine 隐藏「每日」）；移动端 topbar-stats 改 flex nowrap + 每格 min-width:54px。同步模型沿用 v1421。-->
   <!-- v=20260920-0830 App 图标换为「城楼」（金底+白墙黑瓦多重飞檐城楼，呼应急机处·古代军事中枢）；图标链接缓存穿透 ?v=3→?v=4；sw 缓存 wb-v9→wb-v10。同步模型沿用 v1421。-->
@@ -1620,6 +1620,28 @@ const GOAL_IMPS=[{v:"1",k:"关键",dot:"hi"},{v:"2",k:"常规",dot:"mid"},{v:"3"
 function goalImp(g){ return GOAL_IMPS.find(o=>o.v===String((g&&g.imp)||"1"))||GOAL_IMPS[0]; }
 /* 系数只在后台生效：关键×1.5 / 常规×1.25 / 备选×1 */
 function goalImpCoef(gid){ const g=goalById(gid); const v=goalImp(g).v; return v==="1"?1.5 : v==="2"?1.25 : 1; }
+/* 目标序号：可见列表(进行中+今日达成)集合，用于重排 */
+function reorderableGoals(){
+  const ds=dayStr();
+  return (state.goals||[]).filter(g=> !g.doneAt || (g.doneAt && dayStr(g.doneAt)===ds));
+}
+/* 压缩为连续 1..k，保证显示无断号 */
+function normalizeActiveSeq(){
+  const arr=reorderableGoals().sort((a,b)=>(a.seq||1e9)-(b.seq||1e9) || (a.createdAt||0)-(b.createdAt||0));
+  arr.forEach((g,i)=>{ g.seq=i+1; });
+}
+/* 编辑序号=挪位：把 id 挪到位置 newSeq，原 ≥newSeq 的目标自动顺延 +1 */
+function moveGoalSeq(id, newSeq){
+  const arr=reorderableGoals();
+  if(arr.length<2) return;
+  const n=Math.max(1, Math.min(newSeq|0, arr.length));
+  const edited=arr.find(g=>g.id===id); if(!edited) return;
+  const others=arr.filter(g=>g.id!==id).sort((a,b)=>(a.seq||1e9)-(b.seq||1e9) || (a.createdAt||0)-(b.createdAt||0));
+  const out=[]; let ins=false;
+  for(let i=0;i<others.length;i++){ if(i===n-1){ out.push(edited); ins=true; } out.push(others[i]); }
+  if(!ins) out.push(edited);
+  out.forEach((g,i)=>{ g.seq=i+1; });
+}
 /* 历史兼容：老「特殊」难度仅存在于历史记录（完成列表显示 ↑晋级、等级计数用），新系统不再产生 */
 const SPECIAL = "特殊";
 
@@ -2519,6 +2541,7 @@ document.getElementById("list-goal").addEventListener("click",e=>{
       },
       onSave:(res)=>{
         Object.assign(g, res);
+        moveGoalSeq(g.id, res.seq);  // 编辑序号=挪位，其他目标自动顺延
         save(); renderGoals(); renderBacklog(); renderToday(); toast("已修改目标","ok");
       }
     });
@@ -3975,6 +3998,7 @@ document.getElementById("more-reset").addEventListener("click",e=>{
 function renderAll(){ renderBacklog(); renderToday(); renderRoutines(); renderDone(); renderExec(); renderAllNotes(); renderAllStrat(); renderTrash(); renderDaily(); renderKeydays(); refreshStats(); }
 if(trashPurge()) save();   // 启动时清理到期的回收站条目
 (state.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });   // 目标 v3：老目标补 imp 系数（默认关键×1.5）
+normalizeActiveSeq();  // 目标序号：可见列表压缩为连续 1..k（无断号）
 /* 迁移：自动击败的结果类怪物（如高效睡眠）标记为 noSort，独立置底并打符号 */
 (function migrateNoSort(){
   let changed=false;
