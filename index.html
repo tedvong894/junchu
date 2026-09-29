@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
-  <!-- v=20260929-0949 目标序号挪位修复：编辑某目标序号=把它挪到该位置，原≥该位置的目标自动顺延重排（moveGoalSeq），不再需手动逐个改；启动 normalizeActiveSeq 保证可见列表连续 1..k 无断号。导航(1025)+序号(1516)同步保留。同步模型沿用 v1421。-->
+  <!-- v=20260929-1503 目标序号断号修复补全：删除/达成/撤销达成 后统一调用 normalizeActiveSeq() 让剩余可见目标自动补位成连续 1..k（与编辑挪位 moveGoalSeq 同属「集合变动即重排」一类）。导航(1025)+序号(1516)+挪位(0949)同步保留。同步模型沿用 v1421。-->
   <!-- v=20260927-0946 彻底移除任务 priority 相关 UI 与代码：删任务编辑弹窗的 priority 下拉、每日怪物添加行的 priority 下拉、normPriority/priorityCoef/importanceOptions 三函数、今日怪物号码顺延机器(allTodayTasks/todayNextNumber/doneNow/moveNumber/normalizeTodayNumbers)及所有 priority 字段写入；今日怪物排序仍按截止时间+层级，不受影响。同步模型沿用 v1421。-->
   <!-- v=20260921-1345 导航区快捷按钮：加回「灵感」快捷按钮（data-mod=idea，显示 idea 计数）；iPhone 竖屏一行放不下时优先隐藏「目标」快捷按钮（fitStats 改用 hide-goal 优先、仍放不下再 hide-routine 隐藏「每日」）；移动端 topbar-stats 改 flex nowrap + 每格 min-width:54px。同步模型沿用 v1421。-->
   <!-- v=20260920-0830 App 图标换为「城楼」（金底+白墙黑瓦多重飞檐城楼，呼应急机处·古代军事中枢）；图标链接缓存穿透 ?v=3→?v=4；sw 缓存 wb-v9→wb-v10。同步模型沿用 v1421。-->
@@ -2551,6 +2551,7 @@ document.getElementById("list-goal").addEventListener("click",e=>{
     if(!confirm(`删除目标「${g.name}」？\n挂在其下的未击败怪物不会被删除，只解除关联；已击败怪物的经验值不受影响。`)) return;
     [...state.backlog,...state.today].forEach(t=>{ if(t.goalId===g.id) delete t.goalId; });
     state.goals=state.goals.filter(x=>x.id!==g.id);
+    normalizeActiveSeq();  // 删除后剩余目标自动补位成连续 1..k
     save(); renderGoals(); renderBacklog(); renderToday(); refreshStats(); return;
   }
   if(b.dataset.act==="gDone"){
@@ -2558,6 +2559,7 @@ document.getElementById("list-goal").addEventListener("click",e=>{
     if(g.progressMode!=="manual" && st.open>0 && !confirm(`该目标下还有 ${st.open} 个未击败怪物，确定现在就标记达成吗？`)) return;
     if(!confirm(`确认目标「${g.name}」已达成？\n\n达成奖励 +${GOAL_BONUS} 分`)) return;
     g.doneAt=Date.now();
+    normalizeActiveSeq();  // 达成后可见列表(进行中)补位
     /* 历史兼容：老「特殊」目标达成仍记一条 promo（只影响历史晋级等级，不计入分数） */
     if(g.type===SPECIAL && !state.done.some(d=>d.promo && d.goalId===g.id)){
       state.done.unshift({id:g.id+"_promo", title:g.name, diff:SPECIAL, promo:true, goalId:g.id, doneAt:g.doneAt});
@@ -2570,6 +2572,7 @@ document.getElementById("list-goal").addEventListener("click",e=>{
   if(b.dataset.act==="gUndo"){
     if(!confirm(`撤销「${g.name}」的达成状态？奖励分将被收回。`)) return;
     g.doneAt=null;
+    normalizeActiveSeq();  // 撤销达成后可见列表补位
     if(g.type===SPECIAL) state.done=state.done.filter(d=>!(d.promo && d.goalId===g.id));
     save(); renderGoals(); refreshStats();
     toast("已撤销达成","ok");
