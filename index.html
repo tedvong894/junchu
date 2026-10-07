@@ -10,7 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
-  <!-- v=20260929-1503 目标序号断号修复补全：删除/达成/撤销达成 后统一调用 normalizeActiveSeq() 让剩余可见目标自动补位成连续 1..k（与编辑挪位 moveGoalSeq 同属「集合变动即重排」一类）。导航(1025)+序号(1516)+挪位(0949)同步保留。同步模型沿用 v1421。-->
+  <!-- v=20261007-1108 今日怪物动作纯改名(功能不变)：完成→击败、跳过→失败；同步按钮/行内状态/结果toast。导航(1025)+序号(1516)+挪位(0949)+补位(1503)同步保留。同步模型沿用 v1421。-->
   <!-- v=20260927-0946 彻底移除任务 priority 相关 UI 与代码：删任务编辑弹窗的 priority 下拉、每日怪物添加行的 priority 下拉、normPriority/priorityCoef/importanceOptions 三函数、今日怪物号码顺延机器(allTodayTasks/todayNextNumber/doneNow/moveNumber/normalizeTodayNumbers)及所有 priority 字段写入；今日怪物排序仍按截止时间+层级，不受影响。同步模型沿用 v1421。-->
   <!-- v=20260921-1345 导航区快捷按钮：加回「灵感」快捷按钮（data-mod=idea，显示 idea 计数）；iPhone 竖屏一行放不下时优先隐藏「目标」快捷按钮（fitStats 改用 hide-goal 优先、仍放不下再 hide-routine 隐藏「每日」）；移动端 topbar-stats 改 flex nowrap + 每格 min-width:54px。同步模型沿用 v1421。-->
   <!-- v=20260920-0830 App 图标换为「城楼」（金底+白墙黑瓦多重飞檐城楼，呼应急机处·古代军事中枢）；图标链接缓存穿透 ?v=3→?v=4；sw 缓存 wb-v9→wb-v10。同步模型沿用 v1421。-->
@@ -3109,7 +3109,7 @@ document.getElementById("list-today").addEventListener("change",e=>{
     if(act==="edit"){ editTaskFields(t, ()=>{ renderToday(); renderExec(); renderGoals(); }); }
     else if(act==="skip"){
       t.skipped=!t.skipped; save(); renderToday(); renderExec(); refreshStats();
-      toast(t.skipped?"已跳过，今天不再计入「今日」（仍保留在表中）":"已恢复，重新计入今日","ok");
+      toast(t.skipped?"已失败，今天不再计入「今日」（仍保留在表中）":"已恢复，重新计入今日","ok");
     }
     else if(act==="defer"){ deferTask(id); }
     else if(act==="del"){
@@ -3193,10 +3193,10 @@ function routineItemHtml(r, sk){
   const ySkip=(r.doneDates||{})[yds]==="skip";   // 昨天跳过 → 今天提供反悔入口
   const acts = sk
     ? `<button class="icon-btn" data-act="rSkip" data-id="${r.id}">恢复</button>`
-    : `<button class="icon-btn ok" data-act="rFinish" data-id="${r.id}">✓ 完成</button><button class="icon-btn" data-act="rSkip" data-id="${r.id}">跳过</button>${ySkip?`<button class="icon-btn" data-act="rRestoreYest" data-id="${r.id}" title="取消昨天（${yds.slice(5).replace("-","/")}）的跳过">恢复</button>`:''}`;
+    : `<button class="icon-btn ok" data-act="rFinish" data-id="${r.id}">✓ 击败</button><button class="icon-btn" data-act="rSkip" data-id="${r.id}">失败</button>${ySkip?`<button class="icon-btn" data-act="rRestoreYest" data-id="${r.id}" title="取消昨天（${yds.slice(5).replace("-","/")}）的跳过">恢复</button>`:''}`;
   return `<div class="item compact ${sk?'skip':''}" data-id="${r.id}" data-sort-key="routine">
     <div class="row1">
-      ${badge(r.diff)}${noSortMark(r)}<div class="title">${esc(r.title)}</div>${goalTagHtml(r)}${dueHtml}${streak>0?`<span class="r-streak">已坚持 ${streak} 天</span>`:''}${r.end?`<span class="r-range">至 ${r.end.slice(5).replace("-","/")}</span>`:''}${sk?'<span class="meta">今天已跳过</span>':''}
+      ${badge(r.diff)}${noSortMark(r)}<div class="title">${esc(r.title)}</div>${goalTagHtml(r)}${dueHtml}${streak>0?`<span class="r-streak">已坚持 ${streak} 天</span>`:''}${r.end?`<span class="r-range">至 ${r.end.slice(5).replace("-","/")}</span>`:''}${sk?'<span class="meta">今天已失败</span>':''}
       <div class="acts">${acts}</div>
     </div>
   </div>`;
@@ -3215,14 +3215,14 @@ function todayItemHtml(t){
     ? (t.due?`<span class="meta">⏱ ${t.due} 前</span>`:'')
     : `<select class="due-sel" data-id="${t.id}" title="截止时间（可选）">${dueOptions(t.due)}</select>`;
   const deferTag = t.deferDate ? `<span class="meta defer-tag">↪ 递延${t.deferDate.slice(5).replace("-","/")}</span>` : '';
-  const ops = dn ? [["edit","编辑"],["del","删除"]] : [["edit","编辑"],["skip",sk?"恢复":"跳过"],["defer",t.deferDate?"取消递延":"递延"],["del","删除"]];
+  const ops = dn ? [["edit","编辑"],["del","删除"]] : [["edit","编辑"],["skip",sk?"恢复":"失败"],["defer",t.deferDate?"取消递延":"递延"],["del","删除"]];
   const menu = `<select class="more-sel" data-id="${t.id}" title="更多操作"><option value="">操作</option>${ops.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
   return `<div class="item compact ${sk?'skip':(dn?'done':'')}" data-id="${t.id}" data-sort-key="today">
     <div class="row1">
-      ${badge(t.diff)}${noSortMark(t)}<div class="title">${esc(t.title)}</div>${goalTagHtml(t)}${cycleSuf(t)}${dueHtml}${deferTag}${sk?'<span class="meta">已跳过</span>':''}${dn?'<span class="meta">已完成</span>':''}
+      ${badge(t.diff)}${noSortMark(t)}<div class="title">${esc(t.title)}</div>${goalTagHtml(t)}${cycleSuf(t)}${dueHtml}${deferTag}${sk?'<span class="meta">已失败</span>':''}${dn?'<span class="meta">已击败</span>':''}
       <div class="acts">
         ${cycleBtn(t)}
-        <button class="icon-btn ok" data-act="finish" data-id="${t.id}">${dn?'恢复':'✓ 完成'}</button>
+        <button class="icon-btn ok" data-act="finish" data-id="${t.id}">${dn?'恢复':'✓ 击败'}</button>
         ${menu}
       </div>
     </div>
@@ -3239,7 +3239,7 @@ function completeRoutine(id){
   save(); renderToday(); renderDone(); renderRoutines();
   const st=routineStreak(r);
   const gained=donePoints({diff:r.diff,goalId:r.goalId||""});
-  toast("完成 +"+gained+" 分"+(r.goalId?"（关联目标）":"")+(st>1?"，已连续 "+st+" 天 🔥":""),"ok");
+  toast("击败 +"+gained+" 分"+(r.goalId?"（关联目标）":"")+(st>1?"，已连续 "+st+" 天 🔥":""),"ok");
 }
 function skipRoutine(id){
   const r=(state.routines||[]).find(x=>x.id===id); if(!r) return;
@@ -3248,7 +3248,7 @@ function skipRoutine(id){
   if(r.doneDates[ds]==="skip"){ delete r.doneDates[ds]; }   // 再次点击=恢复
   else { r.doneDates[ds]="skip"; }
   save(); renderToday(); renderRoutines();
-  toast(r.doneDates[ds]==="skip"?"今天已跳过，不计分也不断计连续天数提示":"已恢复，重新计入今日","ok");
+  toast(r.doneDates[ds]==="skip"?"今天已失败，不计分也不断计连续天数提示":"已恢复，重新计入今日","ok");
 }
 /* 恢复昨天的跳过：删除昨天的 skip 记录，昨天回到「未记录」状态（反悔窗口仅限次日） */
 function restoreRoutineSkip(id){
@@ -3347,7 +3347,7 @@ function completeTask(id){
   state.done[0].pts=donePoints(state.done[0]);
     delete state.exec[id];
     save(); renderToday(); renderDone(); renderExec(); renderGoals();
-    toast("完成","ok"); return;
+    toast("击败","ok"); return;
   }
   const ex=state.exec[id]||{steps:[],tracking:""};
   const doneItem={id:t.id,title:t.title,diff:t.diff,fromBack:t.fromBack,goalId:t.goalId,doneAt:Date.now(),steps:ex.steps||[],tracking:ex.tracking||""};
@@ -3363,7 +3363,7 @@ function completeTask(id){
   save(); renderToday(); renderDone(); renderExec(); renderGoals(); refreshStats();
   const justEl=document.querySelector('#list-today .item[data-id="'+t.id+'"]'); if(justEl) justEl.classList.add("just-done");
   celebrateTask(doneItem);
-    toast("完成 +"+donePoints(doneItem)+" 分"+(doneItem.goalId?"（关联目标）":"")+"（"+DIFF_LABEL[doneItem.diff]+"）","ok");
+    toast("击败 +"+donePoints(doneItem)+" 分"+(doneItem.goalId?"（关联目标）":"")+"（"+DIFF_LABEL[doneItem.diff]+"）","ok");
 }
 /* 递延：今天仍可见、可照常击败；若当天一直未做，则第二天自动留在/回到当天怪物表（号码届时自动整备） */
 function deferTask(id){
