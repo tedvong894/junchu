@@ -11,6 +11,7 @@
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
   <!-- v=20261007-1630 战略模块新增「习惯」板块（从目标分拆，更偏日常重复）：习惯可被任务关联，关联计分逻辑与目标完全一致（关键×1.5/常规×1.25/备选×1，可与目标加成叠加）；习惯面板置于战略左导航(带计数)，不在顶部导航区；任务添加行/编辑弹窗/行内下拉均新增「关联习惯」。同步模型沿用 v1421。-->
+  <!-- v=20261007-1535 合并目标/习惯为单一关联字段：任务只保留一个关联字段(goalId)，其值可为目标id或习惯id；行内下拉/编辑弹窗/添加行下拉均合并为单一「关联(目标/习惯)」；计分/进度统计统一用 linkedImpCoef/linkedItem 解析；目标和习惯两板块(board)仍独立。同步模型沿用 v1421。-->
   <!-- v=20261007-1108 今日怪物动作纯改名(功能不变)：完成→击败、跳过→失败；同步按钮/行内状态/结果toast。导航(1025)+序号(1516)+挪位(0949)+补位(1503)同步保留。同步模型沿用 v1421。-->
   <!-- v=20260927-0946 彻底移除任务 priority 相关 UI 与代码：删任务编辑弹窗的 priority 下拉、每日怪物添加行的 priority 下拉、normPriority/priorityCoef/importanceOptions 三函数、今日怪物号码顺延机器(allTodayTasks/todayNextNumber/doneNow/moveNumber/normalizeTodayNumbers)及所有 priority 字段写入；今日怪物排序仍按截止时间+层级，不受影响。同步模型沿用 v1421。-->
   <!-- v=20260921-1345 导航区快捷按钮：加回「灵感」快捷按钮（data-mod=idea，显示 idea 计数）；iPhone 竖屏一行放不下时优先隐藏「目标」快捷按钮（fitStats 改用 hide-goal 优先、仍放不下再 hide-routine 隐藏「每日」）；移动端 topbar-stats 改 flex nowrap + 每格 min-width:54px。同步模型沿用 v1421。-->
@@ -1296,8 +1297,7 @@
           <div class="add-row" data-page-node-id="ZlGgyN00eoQjsK6a9RQ6M9">
             <textarea id="in-back" placeholder="添加一个可选怪物…" rows="1"></textarea>
             <select id="sel-diff" data-page-node-id="fCm3GQAK2L0Tm80IYVs6NG"><option value="普通" data-page-node-id="y8kENuNAelRYCtisMMNTOj">宵小</option><option value="挑战" data-page-node-id="ODyyr7mLPZulEONgcIQYxI">恶霸</option><option value="困难" data-page-node-id="viL3lHo5PtnlU4hrcRC8ZG">精锐</option></select>
-            <select id="sel-goal-back" class="goal-sel" title="关联目标（可选）" data-page-node-id="eG5HOrMmbFqAzrE5PcseGO"></select>
-            <select id="sel-habit-back" class="habit-sel" title="关联习惯（可选）" data-page-node-id="habit-add-1"></select>
+            <select id="sel-goal-back" class="goal-sel" title="关联（目标/习惯，可选）" data-page-node-id="eG5HOrMmbFqAzrE5PcseGO"></select>
             <button class="btn-primary" id="btn-add-back" data-page-node-id="Vn1eXhE3UNkvguBNCz33Sy">添加</button>
           </div>
         </div>
@@ -1311,8 +1311,7 @@
         <div class="add-row" data-page-node-id="JDos6a5DODGXB3IT8efzpi">
           <textarea id="in-today" placeholder="临时添加一条当天怪物…" rows="1"></textarea>
           <select id="sel-diff-today" data-page-node-id="7uU0vSqLrmF4zXG5Nm0KmV"><option value="普通" data-page-node-id="8M4FIfuSWr3bytB0s6Sqgd">宵小</option><option value="挑战" data-page-node-id="6dGd6A6ng0R2t0cMRgI6Bx">恶霸</option><option value="困难" data-page-node-id="1bJ9dDjVqGbMv2Cl4mA18q">精锐</option></select>
-          <select id="sel-goal-today" class="goal-sel" title="关联目标（可选）" data-page-node-id="pThdDQCkZkrAn9uCaOCA4t"></select>
-          <select id="sel-habit-today" class="habit-sel" title="关联习惯（可选）" data-page-node-id="habit-add-2"></select>
+          <select id="sel-goal-today" class="goal-sel" title="关联（目标/习惯，可选）" data-page-node-id="pThdDQCkZkrAn9uCaOCA4t"></select>
           <button class="btn-primary" id="btn-add-today" data-page-node-id="6oujYDL1nEKGEa6Vdz4Myy">添加</button>
         </div>
         </div>
@@ -1326,8 +1325,7 @@
           <div class="add-row" data-page-node-id="ZpGdyAMCrIiZ5MMkjOmpuG">
             <textarea id="in-routine" placeholder="添加一条每日怪物，如：晨跑 30 分钟…" rows="1"></textarea>
             <select id="sel-routine-diff" data-page-node-id="1wYzeZHLpCcvvlG6P1BCkF"><option value="普通" data-page-node-id="4FOMMYhHsRdjGLew4t1k5L">宵小</option><option value="挑战" data-page-node-id="2mHmcQoYemex1whB1DODQ7">恶霸</option><option value="困难" data-page-node-id="6zjCYCq3cNgLGn2sHDHRQP">精锐</option></select>
-            <select id="sel-routine-goal" class="goal-sel" title="关联目标（可选）" data-page-node-id="64Urnf0yHwRK6qcgZ2EOUR"></select>
-            <select id="sel-routine-habit" class="habit-sel" title="关联习惯（可选）" data-page-node-id="habit-add-3"></select>
+            <select id="sel-routine-goal" class="goal-sel" title="关联（目标/习惯，可选）" data-page-node-id="64Urnf0yHwRK6qcgZ2EOUR"></select>
             <button class="btn-primary" id="btn-add-routine" data-page-node-id="VenSaunQyzwMfOCF89pP9V">添加</button>
           </div>
           <div class="routine-dates" data-page-node-id="jpQ08foKsFTDCSbSVH8pwS">
@@ -1519,6 +1517,10 @@ async function pullState(){
       state.routines=state.routines||[];
       state.goals=state.goals||[];
       state.habits=state.habits||[];
+      /* v20261007 合并关联字段：旧 habitId -> 统一写入 goalId（目标/习惯合为一个关联字段，id 全局唯一） */
+      const _migLinked=(arr)=>{ (arr||[]).forEach(t=>{ if(t && t.habitId!==undefined){ if(t.goalId===undefined) t.goalId=t.habitId; delete t.habitId; } }); };
+      _migLinked(state.backlog); _migLinked(state.today); _migLinked(state.routines);
+      (state.done||[]).forEach(d=>{ if(d && d.habitId!==undefined){ if(d.goalId===undefined) d.goalId=d.habitId; delete d.habitId; } });
       state.strat=state.strat||{vision:[],strategy:[],idea:[]};
       (state.goals||[]).forEach(g=>{ if(g.doneAt && g.type===SPECIAL && !(state.done||[]).some(d=>d.promo && d.goalId===g.id)){ (state.done=state.done||[]).push({id:g.id+"_promo", title:g.name, diff:SPECIAL, promo:true, goalId:g.id, doneAt:g.doneAt}); } });
       dedupePromos(state);
@@ -1569,6 +1571,8 @@ function importData(file){
       state.strat = state.strat||{vision:[],strategy:[],idea:[]};
       state.goals = state.goals||[];
       state.habits = state.habits||[];
+      /* v20261007 合并关联字段（导入备份同样迁移） */
+      (function(){ const _m=(arr)=>{ (arr||[]).forEach(t=>{ if(t && t.habitId!==undefined){ if(t.goalId===undefined) t.goalId=t.habitId; delete t.habitId; } }); }; _m(state.backlog); _m(state.today); _m(state.routines); (state.done||[]).forEach(d=>{ if(d && d.habitId!==undefined){ if(d.goalId===undefined) d.goalId=d.habitId; delete d.habitId; } }); })();
       state.done = state.done||[];
       state.exec = state.exec||{};
       state.notes = state.notes||{};
@@ -2250,9 +2254,7 @@ function effLevel(){ return levelOf(totalScore()); }
 function donePoints(d){ 
   if(typeof d.pts==="number") return d.pts;   /* 已完成记录：用「完成时固化」的得分，改规则不影响历史 */
   const b=points(d.diff); 
-  const gc = d.goalId ? goalImpCoef(d.goalId) : 1;
-  const hc = d.habitId ? habitImpCoef(d.habitId) : 1;
-  const c = gc * hc;   /* 关联目标 / 关联习惯 各自加成（关键×1.5 / 常规×1.25 / 备选×1），可叠加 */
+  const c = d.goalId ? linkedImpCoef(d.goalId) : 1;   /* 关联目标/习惯加成（关键×1.5 / 常规×1.25 / 备选×1），统一单一关联字段 */
   return Math.round(b*c);   /* 计分只取难度(宵小/恶霸/精锐)与关联目标/习惯加成；任务 priority 数字系数已取消 */
 }
 /* 一次性迁移：把历史已击败怪物的经验值按「旧三档系数」固化。
@@ -2279,9 +2281,8 @@ function recomputeDonePtsV1505(st){
   (st.done||[]).forEach(d=>{
     if(d.promo) return;                        // 特殊目标永久记录不计分
     const b=points(d.diff);
-    const gc=d.goalId?goalImpCoef(d.goalId):1;
-    const hc=d.habitId?habitImpCoef(d.habitId):1;
-    d.pts=Math.round(b*gc*hc);                  // 不含 priorityCoef
+    const c=d.goalId?linkedImpCoef(d.goalId):1;
+    d.pts=Math.round(b*c);                       // 不含 priorityCoef
   });
   st._ptsRecomputedV1505=true;
 }
@@ -2436,55 +2437,33 @@ function moveHabitSeq(id, newSeq){
   if(!ins) out.push(edited);
   out.forEach((h,i)=>{ h.seq=i+1; });
 }
-function habitTagHtml(t){
-  if(!t.habitId) return "";
-  const h=habitById(t.habitId); if(!h) return "";
-  const nm=h.name.length>8?h.name.slice(0,8)+"…":h.name;
-  return `<span class="g-tag habit-tag" title="关联习惯：${esc(h.name)}">🌀 ${esc(nm)}</span>`;
+/* 统一关联解析：单个关联字段 goalId 可指向「目标」或「习惯」（uid 全局唯一，按 id 解析类型） */
+function linkedItem(id){ return goalById(id) || habitById(id); }
+function linkedImpCoef(id){ const it=linkedItem(id); if(!it) return 1; const v=goalImp(it).v; return v==="1"?1.5 : v==="2"?1.25 : 1; }
+function linkedTagHtml(t){
+  if(!t.goalId) return "";
+  const it=linkedItem(t.goalId); if(!it) return "";
+  const isHabit = !!habitById(t.goalId);
+  const nm=it.name.length>8?it.name.slice(0,8)+"…":it.name;
+  const ico = isHabit?"🌀":"🎯";
+  return `<span class="g-tag${isHabit?' habit-tag':''}" title="关联${isHabit?'习惯':'目标'}：${esc(it.name)}">${ico} ${esc(nm)}</span>`;
 }
-function habitItemSelHtml(t){
-  const hs=(state.habits||[]).filter(h=>!h.doneAt || h.id===t.habitId);
-  if(!hs.length) return "";
-  const opts='<option value="">🌀 不关联</option>'+hs.map(h=>{
-    const nm=h.name.length>8?h.name.slice(0,8)+"…":h.name;
-    return `<option value="${h.id}" ${h.id===t.habitId?'selected':''}>🌀 ${esc(nm)}</option>`;
+/* 行内「挂关联」下拉：单一下拉同时列出目标(🎯)与习惯(🌀)，值为 id，解析类型 */
+function linkItemSelHtml(t){
+  const gs=(state.goals||[]).filter(g=>!g.doneAt || g.id===t.goalId);
+  const hs=(state.habits||[]).filter(h=>!h.doneAt || h.id===t.goalId);
+  const all=[...gs.map(g=>({it:g,ico:"🎯"})), ...hs.map(h=>({it:h,ico:"🌀"}))];
+  if(!all.length) return "";
+  const opts='<option value="">🚫 不关联</option>'+all.map(({it,ico})=>{
+    const nm=it.name.length>8?it.name.slice(0,8)+"…":it.name;
+    return `<option value="${it.id}" ${it.id===t.goalId?'selected':''}>${ico} ${esc(nm)}</option>`;
   }).join("");
-  return `<select class="habit-sel habit-item-sel" data-id="${t.id}">${opts}</select>`;
-}
-function refreshHabitSelects(){
-  const opts = '<option value="">🌀 不关联</option>' +
-    (state.habits||[]).filter(h=>!h.doneAt).map(h=>{
-      const nm=h.name.length>10?h.name.slice(0,10)+"…":h.name;
-      return `<option value="${h.id}">🌀 ${esc(nm)}</option>`;
-    }).join("");
-  document.querySelectorAll("select.habit-sel").forEach(sel=>{
-    if(sel._sig===opts) return;
-    const cur=sel.value;
-    sel.innerHTML=opts; sel._sig=opts;
-    if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
-  });
+  return `<select class="goal-sel link-item-sel" data-id="${t.id}">${opts}</select>`;
 }
 
 /* ---------- 目标（已并入进阶区） ---------- */
 function goalById(id){ return (state.goals||[]).find(g=>g.id===id); }
 function curGoal(selId){ const s=document.getElementById(selId); return (s&&s.value)?s.value:undefined; }
-/* 怪物条目上的目标标签 */
-function goalTagHtml(t){
-  if(!t.goalId) return "";
-  const g=goalById(t.goalId); if(!g) return "";
-  const nm=g.name.length>8?g.name.slice(0,8)+"…":g.name;
-  return `<span class="g-tag" title="关联目标：${esc(g.name)}">🎯 ${esc(nm)}</span>`;
-}
-/* 可选怪物条目上的内联「挂目标」下拉（有进行中的目标或本怪物已挂目标时显示） */
-function goalItemSelHtml(t){
-  const gs=(state.goals||[]).filter(g=>!g.doneAt || g.id===t.goalId);
-  if(!gs.length) return "";
-  const opts='<option value="">🎯 不关联</option>'+gs.map(g=>{
-    const nm=g.name.length>8?g.name.slice(0,8)+"…":g.name;
-    return `<option value="${g.id}" ${g.id===t.goalId?'selected':''}>🎯 ${esc(nm)}</option>`;
-  }).join("");
-  return `<select class="goal-sel goal-item-sel" data-id="${t.id}">${opts}</select>`;
-}
 /* 目标进度 = 已完成关联怪物 ÷ 全部关联怪物 */
 function goalStats(gid){
   const g=goalById(gid);
@@ -2497,12 +2476,16 @@ function goalStats(gid){
   const total = open + done;
   return {open, done, total, pct: total ? Math.round(done*100/total) : 0, manual:false};
 }
-/* 「关联目标」下拉刷新（仅列进行中的目标；选项没变化时不重建，避免打断用户选择） */
-function refreshGoalSelects(){
-  const opts = '<option value="">🎯 不关联</option>' +
+/* 「关联(目标/习惯)」下拉刷新（列进行中的目标🎯与习惯🌀；选项没变化时不重建，避免打断用户选择） */
+function refreshLinkedSelects(){
+  const opts = '<option value="">🚫 不关联</option>' +
     (state.goals||[]).filter(g=>!g.doneAt).map(g=>{
       const nm=g.name.length>10?g.name.slice(0,10)+"…":g.name;
       return `<option value="${g.id}">🎯 ${esc(nm)}</option>`;
+    }).join("") +
+    (state.habits||[]).filter(h=>!h.doneAt).map(h=>{
+      const nm=h.name.length>10?h.name.slice(0,10)+"…":h.name;
+      return `<option value="${h.id}">🌀 ${esc(nm)}</option>`;
     }).join("");
   document.querySelectorAll("select.goal-sel").forEach(sel=>{
     if(sel._sig===opts) return;
@@ -2516,7 +2499,7 @@ function renderGoals(){
   const arr=state.goals||[];
   const act=arr.filter(g=>!g.doneAt).length;
   ["cnt-goal"].forEach(i=>{ const c=document.getElementById(i); if(c) c.textContent=act; });
-  refreshGoalSelects();
+  refreshLinkedSelects();
   if(!arr.length){
     el.innerHTML=`<div class="empty">还没有目标。目标是怪物的聚合视图：添加怪物时选「关联目标」，完成即自动推进进度；也可以选「进度·手动拉」自己拖动控制。目标达成一次性 +${GOAL_BONUS} 分</div>`;
     return;
@@ -2679,8 +2662,8 @@ function habitStats(hid){
     let p=Math.round(h.manualPct||0); if(p<0)p=0; if(p>100)p=100;
     return {open:0, done:0, total:0, pct:p, manual:true};
   }
-  const open = state.backlog.filter(t=>t.habitId===hid).length + state.today.filter(t=>t.habitId===hid).length + (state.routines||[]).filter(r=>routineActive(r)&&r.habitId===hid).length;
-  const done = state.done.filter(d=>d.habitId===hid).length;
+  const open = state.backlog.filter(t=>t.goalId===hid).length + state.today.filter(t=>t.goalId===hid).length + (state.routines||[]).filter(r=>routineActive(r)&&r.goalId===hid).length;
+  const done = state.done.filter(d=>d.goalId===hid).length;
   const total = open + done;
   return {open, done, total, pct: total ? Math.round(done*100/total) : 0, manual:false};
 }
@@ -2689,7 +2672,7 @@ function renderHabits(){
   const arr=state.habits||[];
   const act=arr.filter(h=>!h.doneAt).length;
   const cEl=document.getElementById("cnt-habit"); if(cEl) cEl.textContent=act;
-  refreshHabitSelects();
+  refreshLinkedSelects();
   if(!arr.length){
     el.innerHTML=`<div class="empty">还没有习惯。习惯是「更偏日常重复」的目标：添加怪物时选「关联习惯」，完成即自动推进进度；也可以选「进度·手动拉」自己拖动控制。习惯养成一次性 +${GOAL_BONUS} 分</div>`;
     return;
@@ -2801,9 +2784,9 @@ document.getElementById("list-habit").addEventListener("click",e=>{
   }
   if(b.dataset.act==="hDel"){
     if(!confirm(`删除习惯「${h.name}」？\n挂在其下的未击败怪物不会被删除，只解除关联；已击败怪物的经验值不受影响。`)) return;
-    [...state.backlog,...state.today].forEach(t=>{ if(t.habitId===h.id) delete t.habitId; });
-    (state.routines||[]).forEach(r=>{ if(r.habitId===h.id) delete r.habitId; });
-    state.done.forEach(d=>{ if(d.habitId===h.id) delete d.habitId; });
+    [...state.backlog,...state.today].forEach(t=>{ if(t.goalId===h.id) delete t.goalId; });
+    (state.routines||[]).forEach(r=>{ if(r.goalId===h.id) delete r.goalId; });
+    state.done.forEach(d=>{ if(d.goalId===h.id) delete d.goalId; });
     state.habits=state.habits.filter(x=>x.id!==h.id);
     normalizeActiveHabitSeq();
     save(); renderHabits(); renderBacklog(); renderToday(); renderRoutines(); refreshStats(); return;
@@ -3133,8 +3116,7 @@ function renderBacklog(){
           <option value="困难" ${t.diff==='困难'?'selected':''}>精锐</option>
         </select>
         <div class="title">${esc(t.title)}</div>
-        ${goalItemSelHtml(t)}
-        ${habitItemSelHtml(t)}
+        ${linkItemSelHtml(t)}
         ${t.date?`<span class="meta">${fmtTime(t.date)}</span>`:''}
         <div class="acts">
           <button class="icon-btn" data-act="toToday" data-id="${t.id}">加入今天</button>
@@ -3187,10 +3169,7 @@ function openEditModal({title, badgeText="", bodyBuilder, onSave, onClose}){
 /* 怪物/每日怪物的「编辑」：弹窗统一改内容 + 级别 + 关联目标（对 routine 额外支持起止日期） */
 function editTaskFields(t, rerender){
   const isR = (t.start!==undefined) || (t.end!==undefined);
-  const goals=(state.goals||[]).filter(g=>!g.doneAt || g.id===t.goalId);
-  const habits=(state.habits||[]).filter(h=>!h.doneAt || h.id===t.habitId);
-  const habitOpts=habits.map(h=>`<option value="${h.id}" ${h.id===t.habitId?'selected':''}>🌀 ${esc(h.name)}</option>`).join("") + `<option value="" ${!t.habitId?'selected':''}>不关联习惯</option>`;
-  const goalOpts=goals.map(g=>`<option value="${g.id}" ${g.id===t.goalId?'selected':''}>🎯 ${esc(g.name)}</option>`).join("") + `<option value="" ${!t.goalId?'selected':''}>不关联目标</option>`;
+  const linkOpts = (()=>{ const gs=(state.goals||[]).filter(g=>!g.doneAt || g.id===t.goalId).map(g=>({it:g,ico:"🎯"})); const hs=(state.habits||[]).filter(h=>!h.doneAt || h.id===t.goalId).map(h=>({it:h,ico:"🌀"})); const all=[...gs,...hs]; return all.map(({it,ico})=>`<option value="${it.id}" ${it.id===t.goalId?'selected':''}>${ico} ${esc(it.name)}</option>`).join("") + `<option value="" ${!t.goalId?'selected':''}>不关联</option>`; })();
   const diff=t.diff || "普通";
   openEditModal({
     title: isR ? "编辑每日怪物" : "编辑怪物",
@@ -3204,8 +3183,7 @@ function editTaskFields(t, rerender){
             <option value="困难" ${diff==='困难'?'selected':''}>精锐</option>
           </select>
         </div>
-        <div class="edit-row"><label>关联目标</label><select id="ed-goal">${goalOpts}</select></div>
-        <div class="edit-row"><label>关联习惯</label><select id="ed-habit">${habitOpts}</select></div>
+        <div class="edit-row"><label>关联（目标/习惯）</label><select id="ed-link">${linkOpts}</select></div>
         <div class="edit-row"><label>结果类</label>
           <label class="chk"><input type="checkbox" id="ed-nosort" ${t.noSort?'checked':''}> 自动完成的结果（如高效睡眠），不参与截止时间排序</label>
         </div>
@@ -3215,10 +3193,9 @@ function editTaskFields(t, rerender){
         const title=root.querySelector("#ed-title").value.trim();
         if(!title){ toast("内容不能为空","warn"); return false; }
         const diff=root.querySelector("#ed-diff").value;
-        const goalId=root.querySelector("#ed-goal").value || undefined;
-        const habitId=root.querySelector("#ed-habit").value || undefined;
+        const goalId=root.querySelector("#ed-link").value || undefined;
         const noSort=!!root.querySelector("#ed-nosort").checked;
-        const res={title, diff, goalId, habitId, noSort};
+        const res={title, diff, goalId, noSort};
         if(isR){
           const start=root.querySelector("#ed-start").value || dayStr();
           const end=root.querySelector("#ed-end").value || "";
@@ -3261,32 +3238,21 @@ document.getElementById("btn-add-back").addEventListener("click",addBack);
 document.getElementById("in-back").addEventListener("keydown",e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter") addBack(); });
 function addBack(){
   const v=document.getElementById("in-back").value.trim(); if(!v) return;
-  state.backlog.push({id:uid(),title:v,diff:document.getElementById("sel-diff").value,goalId:curGoal("sel-goal-back"),habitId:curGoal("sel-habit-back"),date:Date.now()});
-  document.getElementById("in-back").value=""; save(); renderBacklog(); renderHabits();
+  state.backlog.push({id:uid(),title:v,diff:document.getElementById("sel-diff").value,goalId:curGoal("sel-goal-back"),date:Date.now()});
+  document.getElementById("in-back").value=""; save(); renderBacklog();
 }
 
 /* 怪物条目上的「挂目标」下拉：改变即写入（可选怪物 / 当天怪物共用） */
 document.addEventListener("change", e=>{
-  const gsel=e.target.closest("select.goal-item-sel");
-  if(gsel){
-    const id=gsel.dataset.id;
+  const lsel=e.target.closest("select.link-item-sel");
+  if(lsel){
+    const id=lsel.dataset.id;
     const t=[...state.backlog,...state.today,...(state.routines||[])].find(x=>x.id===id);
     if(!t) return;
-    t.goalId = gsel.value || undefined;
+    t.goalId = lsel.value || undefined;
     save();
-    renderBacklog(); renderToday(); renderGoals();
-    toast(t.goalId?"已关联到目标":"已解除关联","ok");
-    return;
-  }
-  const hsel=e.target.closest("select.habit-item-sel");
-  if(hsel){
-    const id=hsel.dataset.id;
-    const t=[...state.backlog,...state.today,...(state.routines||[])].find(x=>x.id===id);
-    if(!t) return;
-    t.habitId = hsel.value || undefined;
-    save();
-    renderBacklog(); renderToday(); renderHabits();
-    toast(t.habitId?"已关联到习惯":"已解除关联","ok");
+    renderBacklog(); renderToday(); renderGoals(); renderHabits();
+    toast(t.goalId?"已关联到"+(habitById(t.goalId)?"习惯":"目标"):"已解除关联","ok");
   }
 });
 
@@ -3415,10 +3381,10 @@ document.getElementById("btn-add-today").addEventListener("click",addToday);
 document.getElementById("in-today").addEventListener("keydown",e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter") addToday(); });
 function addToday(){
   const v=document.getElementById("in-today").value.trim(); if(!v) return;
-  const t={id:uid(),title:v,diff:document.getElementById("sel-diff-today").value||"普通",fromBack:false,goalId:curGoal("sel-goal-today"),habitId:curGoal("sel-habit-today"),date:Date.now()};
+  const t={id:uid(),title:v,diff:document.getElementById("sel-diff-today").value||"普通",fromBack:false,goalId:curGoal("sel-goal-today"),date:Date.now()};
   state.today.push(t); document.getElementById("in-today").value="";
   if(!state.activeId) setActive(t.id);
-  save(); renderToday(); renderHabits();
+  save(); renderToday();
 }
 
 /* ---------- 每日怪物（阶段性例行，有效期内每天自动出现在③顶部） ---------- */
@@ -3461,7 +3427,7 @@ function routineItemHtml(r, sk){
     : `<button class="icon-btn ok" data-act="rFinish" data-id="${r.id}">✓ 击败</button><button class="icon-btn" data-act="rSkip" data-id="${r.id}">失败</button>${ySkip?`<button class="icon-btn" data-act="rRestoreYest" data-id="${r.id}" title="取消昨天（${yds.slice(5).replace("-","/")}）的跳过">恢复</button>`:''}`;
   return `<div class="item compact ${sk?'skip':''}" data-id="${r.id}" data-sort-key="routine">
     <div class="row1">
-      ${badge(r.diff)}${noSortMark(r)}<div class="title">${esc(r.title)}</div>${goalTagHtml(r)}${dueHtml}${streak>0?`<span class="r-streak">已坚持 ${streak} 天</span>`:''}${r.end?`<span class="r-range">至 ${r.end.slice(5).replace("-","/")}</span>`:''}${sk?'<span class="meta">今天已失败</span>':''}
+      ${badge(r.diff)}${noSortMark(r)}<div class="title">${esc(r.title)}</div>${linkedTagHtml(r)}${dueHtml}${streak>0?`<span class="r-streak">已坚持 ${streak} 天</span>`:''}${r.end?`<span class="r-range">至 ${r.end.slice(5).replace("-","/")}</span>`:''}${sk?'<span class="meta">今天已失败</span>':''}
       <div class="acts">${acts}</div>
     </div>
   </div>`;
@@ -3484,7 +3450,7 @@ function todayItemHtml(t){
   const menu = `<select class="more-sel" data-id="${t.id}" title="更多操作"><option value="">操作</option>${ops.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
   return `<div class="item compact ${sk?'skip':(dn?'done':'')}" data-id="${t.id}" data-sort-key="today">
     <div class="row1">
-      ${badge(t.diff)}${noSortMark(t)}<div class="title">${esc(t.title)}</div>${goalTagHtml(t)}${habitTagHtml(t)}${cycleSuf(t)}${dueHtml}${deferTag}${sk?'<span class="meta">已失败</span>':''}${dn?'<span class="meta">已击败</span>':''}
+      ${badge(t.diff)}${noSortMark(t)}<div class="title">${esc(t.title)}</div>${linkedTagHtml(t)}${cycleSuf(t)}${dueHtml}${deferTag}${sk?'<span class="meta">已失败</span>':''}${dn?'<span class="meta">已击败</span>':''}
       <div class="acts">
         ${cycleBtn(t)}
         <button class="icon-btn ok" data-act="finish" data-id="${t.id}">${dn?'恢复':'✓ 击败'}</button>
@@ -3499,12 +3465,12 @@ function completeRoutine(id){
   r.doneDates=r.doneDates||{};
   if(r.doneDates[ds]) return;
   r.doneDates[ds]="done";
-  state.done.unshift({id:uid(),title:r.title,diff:r.diff,fromBack:false,doneAt:Date.now(),steps:[],tracking:"",routine:true,routineId:r.id,goalId:r.goalId||"",habitId:r.habitId||""});
+  state.done.unshift({id:uid(),title:r.title,diff:r.diff,fromBack:false,doneAt:Date.now(),steps:[],tracking:"",routine:true,routineId:r.id,goalId:r.goalId||""});
   state.done[0].pts=donePoints(state.done[0]);
   save(); renderToday(); renderDone(); renderRoutines();
   const st=routineStreak(r);
   const gained=donePoints({diff:r.diff,goalId:r.goalId||""});
-  toast("击败 +"+gained+" 分"+(r.goalId?"（关联目标）":"")+(st>1?"，已连续 "+st+" 天 🔥":""),"ok");
+  toast("击败 +"+gained+" 分"+(r.goalId?"（关联"+(habitById(r.goalId)?"习惯":"目标")+"）":"")+(st>1?"，已连续 "+st+" 天 🔥":""),"ok");
 }
 function skipRoutine(id){
   const r=(state.routines||[]).find(x=>x.id===id); if(!r) return;
@@ -3541,7 +3507,7 @@ function renderRoutines(){
     const streak=routineStreak(r);
     return `<div class="item compact" data-id="${r.id}" data-sort-key="routine">
       <div class="row1">
-        ${badge(r.diff)}<div class="title">${esc(r.title)}</div>${goalItemSelHtml(r)}${habitItemSelHtml(r)}${stTag}<span class="r-range">${range}</span>${streak>0?`<span class="r-streak">连续 ${streak} 天</span>`:''}${total>0?`<span class="meta">累计完成 ${total} 次</span>`:''}
+        ${badge(r.diff)}<div class="title">${esc(r.title)}</div>${linkItemSelHtml(r)}${stTag}<span class="r-range">${range}</span>${streak>0?`<span class="r-streak">连续 ${streak} 天</span>`:''}${total>0?`<span class="meta">累计完成 ${total} 次</span>`:''}
         <div class="acts">
           <button class="icon-btn" data-act="rEdit" data-id="${r.id}">编辑</button>
           <button class="icon-btn" data-act="rDel" data-id="${r.id}">删除</button>
@@ -3558,9 +3524,9 @@ function addRoutine(){
   const start=document.getElementById("in-routine-start").value || dayStr();
   const end=document.getElementById("in-routine-end").value || "";
   if(end && end<start){ toast("结束日期不能早于开始日期","warn"); return; }
-  state.routines.push({id:uid(),title:v,diff:document.getElementById("sel-routine-diff").value,start,end,doneDates:{},createdAt:Date.now(),goalId:curGoal("sel-routine-goal"),habitId:curGoal("sel-routine-habit")});
+  state.routines.push({id:uid(),title:v,diff:document.getElementById("sel-routine-diff").value,start,end,doneDates:{},createdAt:Date.now(),goalId:curGoal("sel-routine-goal")});
   inp.value="";
-  save(); renderRoutines(); renderToday(); renderHabits();
+  save(); renderRoutines(); renderToday();
   toast("已添加，每天会自动出现在当天怪物顶部","ok");
 }
 document.getElementById("btn-add-routine").addEventListener("click",addRoutine);
@@ -3628,7 +3594,7 @@ function completeTask(id){
   save(); renderToday(); renderDone(); renderExec(); renderGoals(); refreshStats();
   const justEl=document.querySelector('#list-today .item[data-id="'+t.id+'"]'); if(justEl) justEl.classList.add("just-done");
   celebrateTask(doneItem);
-    toast("击败 +"+donePoints(doneItem)+" 分"+(doneItem.goalId?"（关联目标）":"")+"（"+DIFF_LABEL[doneItem.diff]+"）","ok");
+    toast("击败 +"+donePoints(doneItem)+" 分"+(doneItem.goalId?"（关联"+(habitById(doneItem.goalId)?"习惯":"目标")+"）":"")+"（"+DIFF_LABEL[doneItem.diff]+"）","ok");
 }
 /* 递延：今天仍可见、可照常击败；若当天一直未做，则第二天自动留在/回到当天怪物表（号码届时自动整备） */
 function deferTask(id){
@@ -3663,7 +3629,7 @@ function doneItemHtml(d){
   return `<div class="item compact done-item" data-id="${d.id}" data-sort-key="done">
     <div class="row1">
       ${badge(d.diff)}<div class="title">${esc(d.title)}</div>
-      ${d.diff===SPECIAL?'<span class="pts pro">↑晋级</span>':'<span class="pts">+'+donePoints(d)+(d.goalId?' 🎯':'')+'</span>'}${goalTagHtml(d)}${habitTagHtml(d)}<span class="meta">${fmtTime(d.doneAt)}</span>
+      ${d.diff===SPECIAL?'<span class="pts pro">↑晋级</span>':'<span class="pts">+'+donePoints(d)+(d.goalId?(' '+(habitById(d.goalId)?'🌀':'🎯')):'')+'</span>'}${linkedTagHtml(d)}<span class="meta">${fmtTime(d.doneAt)}</span>
       <div class="acts">
         <button class="icon-btn" data-act="restore" data-id="${d.id}">↩ 恢复</button>
         <button class="icon-btn" data-act="delDone" data-id="${d.id}">删除</button>
