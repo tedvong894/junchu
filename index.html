@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261009-1345 新增「目标分解」板块（位于战略区目标与习惯之间）：目标编辑新增「是否分解」下拉；分解目标进度强制自动，其动作逐条(序号1起)管理，最靠前未完成动作自动成为可选怪物表里的怪物，击败后自动导入下一动作，可选/当天怪物表逻辑不变。同步模型沿用 v1421。-->
   <!-- v=20261007-1630 战略模块新增「习惯」板块（从目标分拆，更偏日常重复）：习惯可被任务关联，关联计分逻辑与目标完全一致（关键×1.5/常规×1.25/备选×1，可与目标加成叠加）；习惯面板置于战略左导航(带计数)，不在顶部导航区；任务添加行/编辑弹窗/行内下拉均新增「关联习惯」。同步模型沿用 v1421。-->
   <!-- v=20261007-1535 合并目标/习惯为单一关联字段：任务只保留一个关联字段(goalId)，其值可为目标id或习惯id；行内下拉/编辑弹窗/添加行下拉均合并为单一「关联(目标/习惯)」；计分/进度统计统一用 linkedImpCoef/linkedItem 解析；目标和习惯两板块(board)仍独立。同步模型沿用 v1421。-->
   <!-- v=20261007-1108 今日怪物动作纯改名(功能不变)：完成→击败、跳过→失败；同步按钮/行内状态/结果toast。导航(1025)+序号(1516)+挪位(0949)+补位(1503)同步保留。同步模型沿用 v1421。-->
@@ -319,6 +320,15 @@
   .mod-tab[data-mod="idea"]     .t-ico{background:linear-gradient(135deg,#eab308,#facc15)}
   .mod-tab[data-mod="goal"]     .t-ico{background:linear-gradient(135deg,#34d399,#10b981)}
   .mod-tab[data-mod="habit"]    .t-ico{background:linear-gradient(135deg,#f472b6,#ec4899)}
+  .mod-tab[data-mod="decomp"]   .t-ico{background:linear-gradient(135deg,#f59e0b,#d97706)}
+  .daction{display:flex;align-items:center;gap:6px;padding:3px 0}
+  .daction .dact-seq{width:20px;height:20px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .daction.front .dact-seq{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+  .daction .dact-text{flex:1 1 auto;min-width:80px;border:1px solid var(--line2);border-radius:8px;padding:5px 8px;font-size:13px;background:#fff}
+  .daction.done .dact-text{text-decoration:line-through;color:var(--ink3)}
+  .daction .dact-del{flex:0 0 auto;padding:2px 9px;font-size:13px;line-height:1.4}
+  .decomp-actions{display:block;margin-top:2px}
+  .front-hint{color:var(--brand);font-weight:600}
   .g-tag.habit-tag{background:#fdf2f8;color:#db2777}
   .strat-item{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:#fff}
   .strat-text{font-size:13.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;word-break:break-word;display:inline}
@@ -1153,6 +1163,7 @@
           <button class="mod-tab" data-mod="strategy" data-sort-key="strat" data-page-node-id="bHtkipIEKdJ76Fbu1BNxnD"><span class="t-ico" data-page-node-id="4ZabzKwXe51DutCVy7XYGW">♟️</span><span class="t-name" data-page-node-id="2apeZ8RqYHzB4wNiwF2yNj">战略<span class="t-hint" data-page-node-id="ZyToE1uvHupSHgBWERTs5J">打法原则</span></span><span class="t-cnt" id="cnt-strategy" data-page-node-id="lZCpC87C6zFRVQs27pxQLT">0</span></button>
           <button class="mod-tab" data-mod="idea" data-sort-key="strat" data-page-node-id="XSavq2ub8JVSg2B5aJ3k0h"><span class="t-ico" data-page-node-id="vMPjLNIGAtqWuGRXNulTdJ">💡</span><span class="t-name" data-page-node-id="7jBhDHM2qy3ArAXbmafhmd">灵感<span class="t-hint" data-page-node-id="FbmfFjPkC62r60Lg1mLFHj">随手捕捉</span></span><span class="t-cnt" id="cnt-idea" data-page-node-id="az4AnzU4WerfHZugghEUe2">0</span></button>
           <button class="mod-tab" data-mod="goal" data-sort-key="strat" data-page-node-id="6cDiShDFJgyjci8Bc22en2"><span class="t-ico" data-page-node-id="t1lOSe6oIz2ZjHwdpeEfUs">⭐</span><span class="t-name" data-page-node-id="nRmTwGYFsNjdBeYACS3Q6o">目标<span class="t-hint" data-page-node-id="UQDi0hEjqc1erGHOaYI6pc">关联怪物</span></span><span class="t-cnt" id="cnt-goal" data-page-node-id="zdqRUGYKcPVjR8Eh7YKqvy">0</span></button>
+          <button class="mod-tab" data-mod="decomp" data-sort-key="strat" data-page-node-id="decomp-nav-1"><span class="t-ico" data-page-node-id="decomp-nav-2">🧩</span><span class="t-name" data-page-node-id="decomp-nav-3">目标分解<span class="t-hint" data-page-node-id="decomp-nav-4">动作逐个击破</span></span><span class="t-cnt" id="cnt-decomp" data-page-node-id="decomp-nav-5">0</span></button>
           <button class="mod-tab" data-mod="habit" data-sort-key="strat" data-page-node-id="habit-nav-1"><span class="t-ico" data-page-node-id="habit-nav-2">🌀</span><span class="t-name" data-page-node-id="habit-nav-3">习惯<span class="t-hint" data-page-node-id="habit-nav-4">日常重复</span></span><span class="t-cnt" id="cnt-habit" data-page-node-id="habit-nav-5">0</span></button>
         </div>
       </div>
@@ -1261,6 +1272,11 @@
           </div>
           <div class="hint" style="font-size:11.5px; margin-top:6px" data-page-node-id="2xCYpJBvlMVR5Y7rO3NyVJ">建议同时推进 1~3 个目标。进度支持「自动(按关联怪物)」或「手动拉」，目标达成一次性 +200 点经验值。级别影响关联怪物的经验值（🔴关键 🟡常规 🟢备选）。</div>
         </div>
+      </section>
+      <!-- 目标分解（可分解目标的动作逐个击破；最靠前动作自动成为可选怪物表里的怪物） -->
+      <section class="panel" id="p-decomp" data-page-node-id="p-decomp-1">
+        <div class="p-head" data-page-node-id="p-decomp-2"><span class="pmod" data-page-node-id="p-decomp-3">🧩</span><h2 data-page-node-id="p-decomp-4">目标分解</h2><span class="hint" data-page-node-id="p-decomp-5">最靠前动作自动成为怪物</span><span class="collapse-ind" aria-hidden="true" data-page-node-id="p-decomp-6"><svg viewBox="0 0 16 16" data-page-node-id="p-decomp-7"><path d="M3.5 6.2l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="p-decomp-8"/></svg></span></div>
+        <div class="p-body" data-page-node-id="p-decomp-9"><div class="list" id="list-decomp" data-page-node-id="p-decomp-10"></div></div>
       </section>
       <!-- 习惯（从目标分拆：更偏日常重复的目标；不在顶部导航区显示） -->
       <section class="panel" id="p-habit" data-page-node-id="p-habit-1">
@@ -2550,7 +2566,7 @@ function addGoal(){
   if(!v){ toast("请输入目标内容","warn"); return; }
   const act=(state.goals||[]).filter(g=>!g.doneAt).length;
   if(act>=3 && !confirm(`已有 ${act} 个进行中的目标。一人公司目标贵精不贵多，确定还要再加吗？`)) return;
-  state.goals.push({id:uid(),name:v,imp:document.getElementById("sel-goal-imp").value||"1",deadline:document.getElementById("in-goal-dead").value||"",createdAt:Date.now(),doneAt:null,progressMode:document.getElementById("sel-goal-mode").value||"auto",manualPct:0,seq:(state.goals.reduce((m,g)=>Math.max(m,(g.seq||0)),0))+1});
+  state.goals.push({id:uid(),name:v,imp:document.getElementById("sel-goal-imp").value||"1",deadline:document.getElementById("in-goal-dead").value||"",createdAt:Date.now(),doneAt:null,progressMode:document.getElementById("sel-goal-mode").value||"auto",manualPct:0,decompose:false,decompActions:[],seq:(state.goals.reduce((m,g)=>Math.max(m,(g.seq||0)),0))+1});
   inp.value="";
   document.getElementById("sel-goal-mode").value="auto";
   save(); renderGoals(); refreshStats();
@@ -2558,10 +2574,9 @@ function addGoal(){
 }
 document.getElementById("btn-add-goal").addEventListener("click",addGoal);
 document.getElementById("in-goal").addEventListener("keydown",e=>{ if(e.key==="Enter") addGoal(); });
-document.getElementById("list-goal").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-act]"); if(!b) return;
-  const g=goalById(b.dataset.id); if(!g) return;
-  if(b.dataset.act==="gEdit"){
+function goalAction(act, id){
+  const g=goalById(id); if(!g) return;
+  if(act==="gEdit"){
     const imp=goalImp(g);
     const mode=g.progressMode || "auto";
     openEditModal({
@@ -2585,6 +2600,12 @@ document.getElementById("list-goal").addEventListener("click",e=>{
               <option value="manual" ${mode==='manual'?'selected':''}>手动拖动</option>
             </select>
           </div>
+          <div class="edit-row"><label>是否分解</label>
+            <select id="ed-g-decomp">
+              <option value="no" ${g.decompose?'':'selected'}>否（普通目标）</option>
+              <option value="yes" ${g.decompose?'selected':''}>是（拆成动作逐个击破）</option>
+            </select>
+          </div>
           <div class="edit-row inline" id="ed-g-manual-row" style="${mode==='manual'?'':'display:none'}">
             <label>手动进度</label>
             <input type="range" id="ed-g-pct" min="0" max="100" value="${Math.round(g.manualPct||0)}">
@@ -2600,25 +2621,34 @@ document.getElementById("list-goal").addEventListener("click",e=>{
           let manualPct=parseInt(root.querySelector("#ed-g-pct").value,10)||0;
           if(manualPct<0)manualPct=0; if(manualPct>100)manualPct=100;
           let seq=parseInt(root.querySelector("#ed-g-seq").value,10); if(!seq||seq<1) seq=1;
-          return {name, deadline, imp, progressMode, manualPct, seq};
+          const decompose = root.querySelector("#ed-g-decomp").value==='yes';
+          return {name, deadline, imp, progressMode, manualPct, seq, decompose};
         }};
       },
       onSave:(res)=>{
+        const wasDecomp = !!g.decompose;
         Object.assign(g, res);
+        if(res.decompose) g.progressMode="auto";   // 分解目标强制自动进度
+        else if(wasDecomp){   // 取消分解：把该目标下分解怪物转为普通怪物（去掉 decompSeq 标记）
+          [...state.backlog,...state.today].forEach(t=>{ if(t.decompSeq && t.goalId===g.id) delete t.decompSeq; });
+        }
+        if(!g.decompActions) g.decompActions=[];
         moveGoalSeq(g.id, res.seq);  // 编辑序号=挪位，其他目标自动顺延
-        save(); renderGoals(); renderBacklog(); renderToday(); toast("已修改目标","ok");
+        save(); renderGoals(); renderDecomp(); syncDecompBacklog(); renderBacklog(); renderToday(); toast("已修改目标","ok");
       }
     });
     return;
   }
-  if(b.dataset.act==="gDel"){
+  if(act==="gDel"){
     if(!confirm(`删除目标「${g.name}」？\n挂在其下的未击败怪物不会被删除，只解除关联；已击败怪物的经验值不受影响。`)) return;
+    state.backlog=state.backlog.filter(t=> !(t.decompSeq && t.goalId===g.id));
+    state.today=state.today.filter(t=> !(t.decompSeq && t.goalId===g.id));
     [...state.backlog,...state.today].forEach(t=>{ if(t.goalId===g.id) delete t.goalId; });
     state.goals=state.goals.filter(x=>x.id!==g.id);
     normalizeActiveSeq();  // 删除后剩余目标自动补位成连续 1..k
-    save(); renderGoals(); renderBacklog(); renderToday(); refreshStats(); return;
+    save(); renderGoals(); renderDecomp(); syncDecompBacklog(); renderBacklog(); renderToday(); refreshStats(); return;
   }
-  if(b.dataset.act==="gDone"){
+  if(act==="gDone"){
     const st=goalStats(g.id);
     if(g.progressMode!=="manual" && st.open>0 && !confirm(`该目标下还有 ${st.open} 个未击败怪物，确定现在就标记达成吗？`)) return;
     if(!confirm(`确认目标「${g.name}」已达成？\n\n达成奖励 +${GOAL_BONUS} 分`)) return;
@@ -2628,19 +2658,49 @@ document.getElementById("list-goal").addEventListener("click",e=>{
     if(g.type===SPECIAL && !state.done.some(d=>d.promo && d.goalId===g.id)){
       state.done.unshift({id:g.id+"_promo", title:g.name, diff:SPECIAL, promo:true, goalId:g.id, doneAt:g.doneAt});
     }
-    save(); renderGoals(); refreshStats();
+    save(); renderGoals(); renderDecomp(); refreshStats();
     toast(`🏆 目标达成 +${GOAL_BONUS} 分！`,"ok");
     celebrateGoal();
     return;
   }
-  if(b.dataset.act==="gUndo"){
+  if(act==="gUndo"){
     if(!confirm(`撤销「${g.name}」的达成状态？奖励分将被收回。`)) return;
     g.doneAt=null;
     normalizeActiveSeq();  // 撤销达成后可见列表补位
     if(g.type===SPECIAL) state.done=state.done.filter(d=>!(d.promo && d.goalId===g.id));
-    save(); renderGoals(); refreshStats();
+    save(); renderGoals(); renderDecomp(); refreshStats();
     toast("已撤销达成","ok");
   }
+}
+/* 目标面板按钮（gEdit/gDel/gDone/gUndo）复用同一套 goalAction 逻辑 */
+document.getElementById("list-goal").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-act]"); if(!b) return;
+  goalAction(b.dataset.act, b.dataset.id);
+});
+/* 目标分解面板：动作增删 + 复用目标操作 gEdit/gDel/gDone/gUndo */
+document.getElementById("list-decomp").addEventListener("click",e=>{
+  const addBtn=e.target.closest('button[data-act="dAddAct"]');
+  if(addBtn){ const g=goalById(addBtn.dataset.id); if(g) addDecompAction(g); return; }
+  const delBtn=e.target.closest("button.dact-del");
+  if(delBtn){ const g=goalById(delBtn.dataset.gid); if(g) delDecompAction(g, parseInt(delBtn.dataset.seq,10)); return; }
+  const b=e.target.closest("button[data-act]"); if(!b) return;
+  goalAction(b.dataset.act, b.dataset.id);
+});
+document.getElementById("list-decomp").addEventListener("input",e=>{
+  const inp=e.target.closest(".dact-text"); if(!inp) return;
+  const g=goalById(inp.dataset.gid); if(!g||!g.decompActions) return;
+  const a=g.decompActions.find(x=>x.seq===parseInt(inp.dataset.seq,10)); if(!a) return;
+  a.text=inp.value;
+  const front=(g.decompActions.filter(x=>!x.doneAt).sort((x,y)=>x.seq-y.seq))[0];
+  if(front && front.seq===a.seq){
+    const m=state.backlog.find(t=>t.decompSeq && t.goalId===g.id) || state.today.find(t=>t.decompSeq && t.goalId===g.id);
+    if(m) m.title=a.text;
+  }
+  save();
+});
+document.getElementById("list-decomp").addEventListener("keydown",e=>{
+  const inp=e.target.closest(".dact-text"); if(!inp) return;
+  if(e.key==="Enter"){ e.preventDefault(); const g=goalById(inp.dataset.gid); if(g) addDecompAction(g); }
 });
 /* 手动进度滑块：拖动实时更新进度条与百分比，不重渲染（避免滑块失焦） */
 function setRangeFill(r){ r.style.setProperty('--range-fill', (parseInt(r.value,10)||0)+'%'); }
@@ -2655,6 +2715,80 @@ document.getElementById("list-goal").addEventListener("input",e=>{
   save();
 });
 
+/* ---------- 目标分解：分解怪物管理 + 面板渲染 + 动作增删 ---------- */
+function syncDecompBacklog(){
+  if(!state.goals) return;
+  const activeFor = g => state.backlog.find(t=>t.decompSeq && t.goalId===g.id) || state.today.find(t=>t.decompSeq && t.goalId===g.id);
+  (state.goals||[]).forEach(g=>{
+    const acts=(g.decompActions||[]).filter(a=>!a.doneAt).sort((a,b)=>a.seq-b.seq);
+    const f=acts[0];
+    const act=activeFor(g);
+    if(!g.decompose || g.doneAt){
+      state.backlog=state.backlog.filter(t=> !(t.decompSeq && t.goalId===g.id));   // 取消分解/已达成：移除残留分解怪物
+      return;
+    }
+    if(!f){ if(act) state.backlog=state.backlog.filter(t=> !(t.decompSeq && t.goalId===g.id)); return; }  // 所有动作已完成：清理
+    if(act){
+      if(act.decompSeq!==f.seq || act.title!==(f.text||("动作"+f.seq))){ act.decompSeq=f.seq; act.title=f.text||("动作"+f.seq); }
+    } else {
+      state.backlog.push({id:uid(), title:f.text||("动作"+f.seq), diff:"普通", goalId:g.id, decompSeq:f.seq, date:Date.now()});
+    }
+  });
+}
+function renderDecomp(){
+  const el=document.getElementById("list-decomp"); if(!el) return;
+  const all=(state.goals||[]).filter(g=>g.decompose);
+  const cnt=document.getElementById("cnt-decomp"); if(cnt) cnt.textContent=all.length;
+  if(!all.length){
+    el.innerHTML=`<div class="empty">还没有可分解的目标。在「目标」里点「编辑」，把「是否分解」设为「是」，它就会出现在本区，并可拆成一条条动作逐个击破。</div>`;
+    return;
+  }
+  el.innerHTML=all.map(g=>{
+    const acts=(g.decompActions||[]).slice().sort((a,b)=>a.seq-b.seq);
+    const doneCnt=acts.filter(a=>a.doneAt).length;
+    const total=acts.length;
+    const pct= total? Math.round(doneCnt*100/total):0;
+    const front=acts.find(a=>!a.doneAt);
+    const imp=goalImp(g);
+    const tb=`<span class="gd ${imp.dot}" title="${imp.k}"></span>`;
+    const stateTag=g.doneAt?'<span class="gstate done">🏆 已达成</span>':'';
+    const dead=g.deadline?`<span class="gmeta g-dead">截止 ${g.deadline.slice(5).replace("-","/")}</span>`:'';
+    const actsHtml = acts.map(a=>{
+      const isFront = front && a.seq===front.seq && !a.doneAt;
+      return `<div class="daction ${a.doneAt?'done':''} ${isFront?'front':''}" data-seq="${a.seq}">
+        <span class="dact-seq">${a.seq}</span>
+        <input class="dact-text" data-gid="${g.id}" data-seq="${a.seq}" value="${esc(a.text||'')}" placeholder="动作内容…" ${a.doneAt?'disabled':''}>
+        ${a.doneAt?'<span class="dtag">✓ 已完成</span>':'<button class="dact-del icon-btn" data-gid="'+g.id+'" data-seq="'+a.seq+'">×</button>'}
+      </div>`;
+    }).join("");
+    const frontHint = g.doneAt ? '' : (front ? `<span class="gmeta front-hint">▶ 当前怪物：${esc(front.text||('动作'+front.seq))}（已在可选怪物表）</span>` : `<span class="gmeta">所有动作已完成 🎉</span>`);
+    const actsBtns = g.doneAt ? '' : `<button class="icon-btn" data-act="dAddAct" data-id="${g.id}">+ 动作</button>`;
+    return `<div class="item compact decomp-item ${g.doneAt?'done':''}" data-id="${g.id}">
+      <div class="row1"><span class="g-seq">${g.seq||1}</span>${tb}<div class="title gname">${esc(g.name)}</div>${stateTag}${dead}
+        <div class="acts">
+          ${actsBtns}
+          ${g.doneAt?'<button class="icon-btn" data-act="gUndo" data-id="'+g.id+'">↩ 撤销达成</button>':'<button class="icon-btn ok" data-act="gDone" data-id="'+g.id+'">🏆 达成</button>'}
+          <button class="icon-btn" data-act="gEdit" data-id="${g.id}">编辑</button>
+          <button class="icon-btn" data-act="gDel" data-id="${g.id}">删除</button>
+        </div>
+      </div>
+      <div class="row1"><div class="goal-progress"><div class="goal-bar"><i style="width:${pct}%"></i></div><span class="goal-pct">${pct}%</span></div><span class="gmeta">${doneCnt}/${total} 个动作完成</span></div>
+      <div class="row1 decomp-actions">${actsHtml||'<span class="gmeta">还没有动作，点「+ 动作」添加</span>'}</div>
+      <div class="row1">${frontHint}</div>
+    </div>`;
+  }).join("");
+}
+function addDecompAction(g){
+  if(!g.decompActions) g.decompActions=[];
+  const maxSeq=g.decompActions.reduce((m,a)=>Math.max(m,a.seq||0),0);
+  g.decompActions.push({seq:maxSeq+1, text:"", doneAt:null});
+  save(); renderDecomp(); syncDecompBacklog(); renderBacklog();
+}
+function delDecompAction(g, seq){
+  if(!g.decompActions) return;
+  g.decompActions=g.decompActions.filter(a=>a.seq!==seq);
+  save(); renderDecomp(); syncDecompBacklog(); renderBacklog();
+}
 /* ---------- 习惯（从目标分拆；关联怪物计分逻辑与目标完全一致） ---------- */
 function habitStats(hid){
   const h=habitById(hid);
@@ -2926,7 +3060,7 @@ function refreshStats(){
   if(pill) pill.innerHTML = `<div class="hero-ico">${lv.icon}</div><div class="hero-info"><div class="hero-label">当前等级</div><div class="hero-value lv-text">Lv.${lv.n} ${lv.title}</div></div>`;
   renderNavCounts();
   renderTrend();
-  renderGoals(); renderHabits();
+  renderGoals(); renderHabits(); renderDecomp(); syncDecompBacklog();
   const lvNow = effLevel().n;
   if(_booting){ _lastLv = lvNow; }               // 启动/拉数据期间：只记录等级、绝不庆祝（解决重登重放升级特效）
   else if(lvNow > _lastLv) celebrateLevelUp(lvNow);
@@ -3104,6 +3238,7 @@ function kdDel(id){
 }
 /* ---------- 模块1 可选怪物 ---------- */
 function renderBacklog(){
+  syncDecompBacklog();   // 分解目标：永远只保留最靠前未完成动作对应的怪物
   const el = document.getElementById("list-backlog");
   if(!state.backlog.length){ el.innerHTML = `<div class="empty">还没有可选怪物，下面添加一条吧</div>`; refreshStats(); return; }
   el.innerHTML = state.backlog.map(t=>{
@@ -3214,7 +3349,7 @@ function editTaskFields(t, rerender){
 document.getElementById("list-backlog").addEventListener("click",e=>{
   const b=e.target.closest("button[data-act]"); if(!b) return;
   const id=b.dataset.id;
-  if(b.dataset.act==="delBack") state.backlog=state.backlog.filter(t=>t.id!==id);
+  if(b.dataset.act==="delBack"){ const tt=state.backlog.find(x=>x.id===id); if(tt&&tt.decompSeq){ toast("该怪物由「目标分解」自动管理，请在目标分解区删除对应动作","warn"); return; } state.backlog=state.backlog.filter(t=>t.id!==id); }
   if(b.dataset.act==="editBack"){
     const t=state.backlog.find(x=>x.id===id); if(!t) return;
     editTaskFields(t, ()=>{ renderBacklog(); renderGoals(); renderHabits(); }); return;
@@ -3222,7 +3357,7 @@ document.getElementById("list-backlog").addEventListener("click",e=>{
   if(b.dataset.act==="toToday"){
     const t=state.backlog.find(x=>x.id===id); if(!t) return;
     state.backlog=state.backlog.filter(x=>x.id!==id);
-    state.today.push({id:t.id,title:t.title,diff:t.diff,fromBack:true,goalId:t.goalId,date:t.date||Date.now()});
+    state.today.push({id:t.id,title:t.title,diff:t.diff,fromBack:true,goalId:t.goalId,decompSeq:t.decompSeq,date:t.date||Date.now()});
     if(!state.activeId) setActive(t.id);
     renderToday();
     setActiveMod("today");
@@ -3564,7 +3699,8 @@ function completeTask(id){
     state.done=state.done.filter(d=>d.id!==id);
     t.done=false; t.doneDate=null;
     delete t.deferDate; delete t.cycleDefer;
-    save(); renderToday(); renderDone(); renderExec(); renderGoals(); refreshStats();
+    if(t.decompSeq && t.goalId){ const dg=goalById(t.goalId); if(dg&&dg.decompActions){ const da=dg.decompActions.find(x=>x.seq===t.decompSeq); if(da) da.doneAt=null; } }
+    save(); renderToday(); renderDone(); renderExec(); renderGoals(); renderBacklog(); refreshStats();
     toast("已恢复，重新计入今日","ok");
     return;
   }
@@ -3585,13 +3721,14 @@ function completeTask(id){
   state.done.unshift(doneItem);
   state.done[0].pts=donePoints(state.done[0]);
   delete state.exec[id];              // 完成即退出执行区
+  if(t.decompSeq && t.goalId){ const dg=goalById(t.goalId); if(dg&&dg.decompActions){ const da=dg.decompActions.find(x=>x.seq===t.decompSeq && !x.doneAt); if(da) da.doneAt=Date.now(); } }
   if(state.activeId===id) state.activeId=null;
   t.done=true; t.doneDate=dayStr();   // 标记今天击败，保留在当天怪物表（划线显示）；跨天后由 rolloverDay 清理非今日击败项
   if(t.days && (t.dayNum||1) < t.days){   // 多日怪物：未满天数 → 自动顺延到明天，次日出现下一序号（如 1/5 → 2/5）
     const d=new Date(); d.setDate(d.getDate()+1);
     t.deferDate=dayStr(d); t.cycleDefer=true;
   }
-  save(); renderToday(); renderDone(); renderExec(); renderGoals(); refreshStats();
+  save(); renderToday(); renderDone(); renderExec(); renderGoals(); renderBacklog(); refreshStats();
   const justEl=document.querySelector('#list-today .item[data-id="'+t.id+'"]'); if(justEl) justEl.classList.add("just-done");
   celebrateTask(doneItem);
     toast("击败 +"+donePoints(doneItem)+" 分"+(doneItem.goalId?"（关联"+(habitById(doneItem.goalId)?"习惯":"目标")+"）":"")+"（"+DIFF_LABEL[doneItem.diff]+"）","ok");
@@ -4229,7 +4366,7 @@ document.getElementById("more-reset").addEventListener("click",e=>{
   toast("已清空全部数据","ok");
 });
 
-function renderAll(){ renderBacklog(); renderToday(); renderRoutines(); renderDone(); renderExec(); renderAllNotes(); renderAllStrat(); renderTrash(); renderDaily(); renderKeydays(); refreshStats(); }
+function renderAll(){ syncDecompBacklog(); renderBacklog(); renderToday(); renderRoutines(); renderDone(); renderExec(); renderAllNotes(); renderAllStrat(); renderTrash(); renderDaily(); renderKeydays(); renderGoals(); renderHabits(); renderDecomp(); refreshStats(); }
 if(trashPurge()) save();   // 启动时清理到期的回收站条目
 (state.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });   // 目标 v3：老目标补 imp 系数（默认关键×1.5）
 normalizeActiveSeq();  // 目标序号：可见列表压缩为连续 1..k（无断号）
