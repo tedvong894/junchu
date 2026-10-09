@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261009-1645 目标分解面板改版：由「横向动作行」改为「目录/子目录折叠树」——每个分解目标是一个可折叠目录节点，动作作为子目录条目前挂，点击目标头展开/折叠；目标分解区可同时容纳多个待分解目标；动作增删/Enter 新增/最靠前动作自动进怪物表逻辑不变。同步模型沿用 v1421。-->
   <!-- v=20261009-1345 新增「目标分解」板块（位于战略区目标与习惯之间）：目标编辑新增「是否分解」下拉；分解目标进度强制自动，其动作逐条(序号1起)管理，最靠前未完成动作自动成为可选怪物表里的怪物，击败后自动导入下一动作，可选/当天怪物表逻辑不变。同步模型沿用 v1421。-->
   <!-- v=20261007-1630 战略模块新增「习惯」板块（从目标分拆，更偏日常重复）：习惯可被任务关联，关联计分逻辑与目标完全一致（关键×1.5/常规×1.25/备选×1，可与目标加成叠加）；习惯面板置于战略左导航(带计数)，不在顶部导航区；任务添加行/编辑弹窗/行内下拉均新增「关联习惯」。同步模型沿用 v1421。-->
   <!-- v=20261007-1535 合并目标/习惯为单一关联字段：任务只保留一个关联字段(goalId)，其值可为目标id或习惯id；行内下拉/编辑弹窗/添加行下拉均合并为单一「关联(目标/习惯)」；计分/进度统计统一用 linkedImpCoef/linkedItem 解析；目标和习惯两板块(board)仍独立。同步模型沿用 v1421。-->
@@ -329,6 +330,20 @@
   .daction .dact-del{flex:0 0 auto;padding:2px 9px;font-size:13px;line-height:1.4}
   .decomp-actions{display:block;margin-top:2px}
   .front-hint{color:var(--brand);font-weight:600}
+  .decomp-goal{border:1px solid var(--line2);border-radius:12px;margin:6px 0;background:#fff;overflow:hidden}
+  .decomp-goal.done{opacity:.72}
+  .decomp-goal-head{display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:pointer}
+  .decomp-goal-head:hover{background:linear-gradient(135deg,#fff,#f4f3ff)}
+  .decomp-goal-head .twisty{width:16px;text-align:center;color:var(--ink3);font-size:12px;flex:0 0 auto;user-select:none}
+  .decomp-goal-head .dg-name{font-weight:600;font-size:14px;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .decomp-goal-head .gstate.done{font-size:12px}
+  .decomp-goal-head .dg-badge{font-size:11px;color:var(--ink3);background:var(--line2);border-radius:999px;padding:1px 7px;flex:0 0 auto}
+  .decomp-goal-head .dg-pct{font-size:11px;font-weight:700;color:var(--brand);flex:0 0 auto}
+  .decomp-goal-head .acts{display:flex;gap:4px;flex:0 0 auto}
+  .decomp-goal-body{padding:4px 10px 10px 26px;border-top:1px solid var(--line2);background:linear-gradient(180deg,#fafaff,#fff)}
+  .decomp-goal-body .dg-hint{padding:4px 0;font-size:12px}
+  .daction-list{display:block}
+  .dg-add{padding:6px 0 0}
   .g-tag.habit-tag{background:#fdf2f8;color:#db2777}
   .strat-item{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:#fff}
   .strat-text{font-size:13.5px;line-height:1.7;color:var(--ink);white-space:pre-wrap;word-break:break-word;display:inline}
@@ -2677,14 +2692,24 @@ document.getElementById("list-goal").addEventListener("click",e=>{
   const b=e.target.closest("button[data-act]"); if(!b) return;
   goalAction(b.dataset.act, b.dataset.id);
 });
-/* 目标分解面板：动作增删 + 复用目标操作 gEdit/gDel/gDone/gUndo */
+/* 目标分解面板：折叠树交互（目标=目录，动作=子目录）+ 复用目标操作 gEdit/gDel/gDone/gUndo */
 document.getElementById("list-decomp").addEventListener("click",e=>{
   const addBtn=e.target.closest('button[data-act="dAddAct"]');
   if(addBtn){ const g=goalById(addBtn.dataset.id); if(g) addDecompAction(g); return; }
   const delBtn=e.target.closest("button.dact-del");
   if(delBtn){ const g=goalById(delBtn.dataset.gid); if(g) delDecompAction(g, parseInt(delBtn.dataset.seq,10)); return; }
-  const b=e.target.closest("button[data-act]"); if(!b) return;
-  goalAction(b.dataset.act, b.dataset.id);
+  const b=e.target.closest("button[data-act]");
+  if(b){ const a=b.dataset.act; if(a==="gEdit"||a==="gDel"||a==="gDone"||a==="gUndo"){ goalAction(a, b.dataset.id); return; } }
+  const head=e.target.closest('[data-act="dgToggle"]');
+  if(head){
+    const id=head.dataset.id;
+    const open = decompOpen[id] !== false;
+    decompOpen[id] = !open;
+    const body=head.parentElement && head.parentElement.querySelector(".decomp-goal-body");
+    const tw=head.querySelector(".twisty");
+    if(body) body.style.display = open ? "none" : "block";
+    if(tw) tw.textContent = open ? "▸" : "▾";
+  }
 });
 document.getElementById("list-decomp").addEventListener("input",e=>{
   const inp=e.target.closest(".dact-text"); if(!inp) return;
@@ -2735,12 +2760,13 @@ function syncDecompBacklog(){
     }
   });
 }
+const decompOpen = {};   /* 目标分解：各目标展开/折叠状态（默认展开） */
 function renderDecomp(){
   const el=document.getElementById("list-decomp"); if(!el) return;
   const all=(state.goals||[]).filter(g=>g.decompose);
   const cnt=document.getElementById("cnt-decomp"); if(cnt) cnt.textContent=all.length;
   if(!all.length){
-    el.innerHTML=`<div class="empty">还没有可分解的目标。在「目标」里点「编辑」，把「是否分解」设为「是」，它就会出现在本区，并可拆成一条条动作逐个击破。</div>`;
+    el.innerHTML=`<div class="empty">还没有可分解的目标。在「目标」里点「编辑」，把「是否分解」设为「是」，它就会以「目录」形式出现在本区：点目标展开，逐条添加动作，最靠前的动作自动成为怪物。</div>`;
     return;
   }
   el.innerHTML=all.map(g=>{
@@ -2751,8 +2777,10 @@ function renderDecomp(){
     const front=acts.find(a=>!a.doneAt);
     const imp=goalImp(g);
     const tb=`<span class="gd ${imp.dot}" title="${imp.k}"></span>`;
-    const stateTag=g.doneAt?'<span class="gstate done">🏆 已达成</span>':'';
+    const stateTag=g.doneAt?'<span class="gstate done">🏆</span>':'';
     const dead=g.deadline?`<span class="gmeta g-dead">截止 ${g.deadline.slice(5).replace("-","/")}</span>`:'';
+    const open = decompOpen[g.id] !== false;
+    const twisty = open ? '\u25BE' : '\u25B8';
     const actsHtml = acts.map(a=>{
       const isFront = front && a.seq===front.seq && !a.doneAt;
       return `<div class="daction ${a.doneAt?'done':''} ${isFront?'front':''}" data-seq="${a.seq}">
@@ -2762,27 +2790,36 @@ function renderDecomp(){
       </div>`;
     }).join("");
     const frontHint = g.doneAt ? '' : (front ? `<span class="gmeta front-hint">▶ 当前怪物：${esc(front.text||('动作'+front.seq))}（已在可选怪物表）</span>` : `<span class="gmeta">所有动作已完成 🎉</span>`);
-    const actsBtns = g.doneAt ? '' : `<button class="icon-btn" data-act="dAddAct" data-id="${g.id}">+ 动作</button>`;
-    return `<div class="item compact decomp-item ${g.doneAt?'done':''}" data-id="${g.id}">
-      <div class="row1"><span class="g-seq">${g.seq||1}</span>${tb}<div class="title gname">${esc(g.name)}</div>${stateTag}${dead}
+    const actsBtns = g.doneAt ? '' : `<button class="icon-btn" data-act="dAddAct" data-id="${g.id}">＋ 添加动作</button>`;
+    return `<div class="decomp-goal ${g.doneAt?'done':''}" data-id="${g.id}">
+      <div class="decomp-goal-head" data-act="dgToggle" data-id="${g.id}">
+        <span class="twisty">${twisty}</span>${tb}
+        <span class="dg-name">${esc(g.name)}</span>${stateTag}${dead}
+        <span class="dg-badge">${doneCnt}/${total}</span><span class="dg-pct">${pct}%</span>
         <div class="acts">
-          ${actsBtns}
-          ${g.doneAt?'<button class="icon-btn" data-act="gUndo" data-id="'+g.id+'">↩ 撤销达成</button>':'<button class="icon-btn ok" data-act="gDone" data-id="'+g.id+'">🏆 达成</button>'}
+          ${g.doneAt?'<button class="icon-btn" data-act="gUndo" data-id="'+g.id+'">↩</button>':'<button class="icon-btn ok" data-act="gDone" data-id="'+g.id+'">🏆</button>'}
           <button class="icon-btn" data-act="gEdit" data-id="${g.id}">编辑</button>
           <button class="icon-btn" data-act="gDel" data-id="${g.id}">删除</button>
         </div>
       </div>
-      <div class="row1"><div class="goal-progress"><div class="goal-bar"><i style="width:${pct}%"></i></div><span class="goal-pct">${pct}%</span></div><span class="gmeta">${doneCnt}/${total} 个动作完成</span></div>
-      <div class="row1 decomp-actions">${actsHtml||'<span class="gmeta">还没有动作，点「+ 动作」添加</span>'}</div>
-      <div class="row1">${frontHint}</div>
+      <div class="decomp-goal-body" style="display:${open?'block':'none'}">
+        <div class="dg-hint">${frontHint}</div>
+        <div class="daction-list">${actsHtml||'<span class="gmeta">还没有动作，点下方「＋ 添加动作」</span>'}</div>
+        <div class="dg-add">${actsBtns}</div>
+      </div>
     </div>`;
   }).join("");
 }
+
 function addDecompAction(g){
   if(!g.decompActions) g.decompActions=[];
   const maxSeq=g.decompActions.reduce((m,a)=>Math.max(m,a.seq||0),0);
   g.decompActions.push({seq:maxSeq+1, text:"", doneAt:null});
+  decompOpen[g.id]=true;   // 新增动作后确保该目标处于展开状态
   save(); renderDecomp(); syncDecompBacklog(); renderBacklog();
+  const el=document.getElementById("list-decomp");
+  const inp=el && el.querySelector('.decomp-goal[data-id="'+g.id+'"] .daction:last-of-type .dact-text');
+  if(inp) inp.focus();
 }
 function delDecompAction(g, seq){
   if(!g.decompActions) return;
