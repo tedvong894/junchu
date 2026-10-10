@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-0908 导航栏调整：顶部快捷区取消「每日」「完成」，换成「习惯」「愿景」（点击跳转对应模块，内在功能不变）；refreshStats 改为计数守卫（st-done 不再硬取），新增 st-habit/st-vision 计数；sw 缓存 wb-v22→wb-v23。同步模型沿用 v1421。-->
   <!-- v=20261009-1645 目标分解面板改版：由「横向动作行」改为「目录/子目录折叠树」——每个分解目标是一个可折叠目录节点，动作作为子目录条目前挂，点击目标头展开/折叠；目标分解区可同时容纳多个待分解目标；动作增删/Enter 新增/最靠前动作自动进怪物表逻辑不变。同步模型沿用 v1421。-->
   <!-- v=20261009-1345 新增「目标分解」板块（位于战略区目标与习惯之间）：目标编辑新增「是否分解」下拉；分解目标进度强制自动，其动作逐条(序号1起)管理，最靠前未完成动作自动成为可选怪物表里的怪物，击败后自动导入下一动作，可选/当天怪物表逻辑不变。同步模型沿用 v1421。-->
   <!-- v=20261007-1630 战略模块新增「习惯」板块（从目标分拆，更偏日常重复）：习惯可被任务关联，关联计分逻辑与目标完全一致（关键×1.5/常规×1.25/备选×1，可与目标加成叠加）；习惯面板置于战略左导航(带计数)，不在顶部导航区；任务添加行/编辑弹窗/行内下拉均新增「关联习惯」。同步模型沿用 v1421。-->
@@ -1154,9 +1155,9 @@
       <button class="stat" data-mod="goal" data-page-node-id="HSbr8JKm3FYDYIBVowOFiY"><span class="stat-n" id="st-goal" data-page-node-id="0JN9DzjEkzoojpeCLvRGfw">0</span><span class="stat-l" data-page-node-id="f9WRvudBuixUkBMGlcCnU2">目标</span></button>
       <button class="stat" data-mod="backlog" data-page-node-id="4lzU4DlglJR7rHCxKaDvTR"><span class="stat-n" id="st-back" data-page-node-id="lEZ7oJwZSRigs0ChW3y0X7">0</span><span class="stat-l" data-page-node-id="lltvcAjcuDYcwh7nBBXx2g">可选</span></button>
       <button class="stat" data-mod="today" data-page-node-id="bRDDQcsBYLQLMIMK8Ik3LH"><span class="stat-n" id="st-today" data-page-node-id="Pxxch1z7qsdyLvrwhD1XoE">0</span><span class="stat-l" data-page-node-id="kWn7HkgXL81bH0WFSkUn3r">今日</span></button>
-      <button class="stat" data-mod="routine" data-page-node-id="YPvj9H89IUUupBXlgqXA9Q"><span class="stat-n" id="st-routine" data-page-node-id="3vmEUA2GgUYPsDX39Ezr5C">0</span><span class="stat-l" data-page-node-id="gJHmroSA8MfvQvAsuC7Da9">每日</span></button>
+      <button class="stat" data-mod="habit" data-page-node-id="habit-stat-1"><span class="stat-n" id="st-habit" data-page-node-id="habit-stat-2">0</span><span class="stat-l" data-page-node-id="habit-stat-3">习惯</span></button>
       <!-- 灵感快捷按钮见上方 data-mod="idea" -->
-      <button class="stat" data-mod="done" data-page-node-id="OyvdvHeoR33u9HAWBbWRtw"><span class="stat-n" id="st-done" data-page-node-id="fOnpmDDjFoIgQqjiT89Ajx">0</span><span class="stat-l" data-page-node-id="Yhu3tHzNHwsajPl9fXWX7D">完成</span></button>
+      <button class="stat" data-mod="vision" data-page-node-id="vision-stat-1"><span class="stat-n" id="st-vision" data-page-node-id="vision-stat-2">0</span><span class="stat-l" data-page-node-id="vision-stat-3">愿景</span></button>
       <button class="stat" data-mod="note-life" title="生活备忘录"><span class="stat-n" id="st-life">0</span><span class="stat-l">备忘录</span></button>
       <button class="stat" data-mod="calendar" id="cal-block" title="实时日历"><span class="stat-n" id="cal-time">--:--:--</span><span class="stat-l" id="cal-date">--/--</span></button>
     </div>
@@ -3076,7 +3077,8 @@ function refreshStats(){
   document.getElementById("st-back").textContent = state.backlog.length;
   document.getElementById("st-today").textContent = todayCount();
 
-  document.getElementById("st-done").textContent = doneTodayCount();
+  const doneEl=document.getElementById("st-done");
+  if(doneEl) doneEl.textContent = doneTodayCount();
   const routineEl=document.getElementById("st-routine");
   if(routineEl) routineEl.textContent=(state.routines||[]).filter(r=>routineActive(r)).length;
   const goalEl=document.getElementById("st-goal");
@@ -3087,6 +3089,10 @@ function refreshStats(){
   if(ideaEl) ideaEl.textContent=getStrat("idea").length;
   const lifeEl=document.getElementById("st-life");
   if(lifeEl) lifeEl.textContent=getNotes("life").length;
+  const habitEl=document.getElementById("st-habit");
+  if(habitEl) habitEl.textContent=(state.habits||[]).filter(h=>!h.doneAt).length;
+  const visionEl=document.getElementById("st-vision");
+  if(visionEl) visionEl.textContent=getStrat("vision").length;
   const execEl2=document.getElementById("st-exec");
   if(execEl2){ execEl2.textContent = execCount(); }
   const sc=totalScore();
