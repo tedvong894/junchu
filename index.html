@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1047 修复目标分解「恢复(撤销击败)无法逆操作」：重写 syncDecompBacklog 为稳健对账——每个分解目标只保留最靠前未完成动作对应的一个激活怪物，删除残留/重复怪物；恢复分支在链接被旧版 bug 篡改时兜底复位该目标下唯一仍标记完成的动作；击败分支按 seq 精确匹配。连带修掉恢复后残留重复怪物。sw 缓存 wb-v25→wb-v26。同步模型沿用 v1421。-->
   <!-- v=20261010-1035 修复目标分解：动作击败后下一个动作误出现在当日表且已击败（syncDecompBacklog/renderDecomp 把已击败的分解怪物仍当激活怪物，导致下一个动作就地改名卡在当日表）；改为只认未击败(!t.done)的分解怪物为激活项，击败后下一动作回到可选怪物区由用户手动入当日；sw 缓存 wb-v24→wb-v25。同步模型沿用 v1421。-->
   <!-- v=20261010-0950 修复备忘录/灵感记录后消失：mergeAdditions 首拉漏合并 notes(备忘录/今日成长/商务) 与 strat(灵感/愿景/战略)，现已并入，避免开机首拉覆盖本地新增；sw 缓存 wb-v23→wb-v24。同步模型沿用 v1421。-->
   <!-- v=20261010-0908 导航栏调整：顶部快捷区取消「每日」「完成」，换成「习惯」「愿景」（点击跳转对应模块，内在功能不变）；refreshStats 改为计数守卫（st-done 不再硬取），新增 st-habit/st-vision 计数；sw 缓存 wb-v22→wb-v23。同步模型沿用 v1421。-->
@@ -2756,23 +2757,37 @@ document.getElementById("list-goal").addEventListener("input",e=>{
 /* ---------- 目标分解：分解怪物管理 + 面板渲染 + 动作增删 ---------- */
 function syncDecompBacklog(){
   if(!state.goals) return;
-  /* 只认「未击败」的分解怪物为当前激活怪物：今日表中已击败(done=true)不再计入，
-     避免击败后把下一个动作就地改名并卡在当日表（正确行为：击败后下一动作回到可选怪物区，由用户手动决定是否入当日） */
-  const activeFor = g => state.backlog.find(t=>t.decompSeq && t.goalId===g.id && !t.done)
-                     || state.today.find(t=>t.decompSeq && t.goalId===g.id && !t.done);
+  /* 目标分解：永远只保留「最靠前未完成动作」对应的一个激活怪物（在可选怪物区或当日表）。
+     击败后下一动作回到可选怪物区，由用户手动入当日；恢复(撤销击败)则把该动作重新变为最靠前未完成，
+     旧的下一动作怪物作为残留被清理——不靠就地改名，避免「击败后下一动作误卡当日表」与「恢复无法逆操作」。 */
   (state.goals||[]).forEach(g=>{
-    const acts=(g.decompActions||[]).filter(a=>!a.doneAt).sort((a,b)=>a.seq-b.seq);
-    const f=acts[0];
-    const act=activeFor(g);
-    if(!g.decompose || g.doneAt){
-      state.backlog=state.backlog.filter(t=> !(t.decompSeq && t.goalId===g.id));   // 取消分解/已达成：移除残留分解怪物
+    const isDec = g.decompose && !g.doneAt;
+    if(!isDec){   // 取消分解 / 目标已达成：清掉未完成的残留分解怪物（已击败仍划线的保留，由 rollover 处理）
+      state.backlog=state.backlog.filter(t=> !(t.decompSeq && t.goalId===g.id && !t.done));
+      state.today=state.today.filter(t=> !(t.decompSeq && t.goalId===g.id && !t.done));
       return;
     }
-    if(!f){ if(act) state.backlog=state.backlog.filter(t=> !(t.decompSeq && t.goalId===g.id)); return; }  // 所有动作已完成：清理
-    if(act){
-      if(act.decompSeq!==f.seq || act.title!==(f.text||("动作"+f.seq))){ act.decompSeq=f.seq; act.title=f.text||("动作"+f.seq); }
-    } else {
-      state.backlog.push({id:uid(), title:f.text||("动作"+f.seq), diff:"普通", goalId:g.id, decompSeq:f.seq, date:Date.now()});
+    const acts=(g.decompActions||[]).slice().sort((a,b)=>a.seq-b.seq);
+    const f=acts.find(a=>!a.doneAt);                 // 最靠前未完成动作
+    if(!f){   // 所有动作已完成：清掉未完成的残留分解怪物
+      state.backlog=state.backlog.filter(t=> !(t.decompSeq && t.goalId===g.id && !t.done));
+      state.today=state.today.filter(t=> !(t.decompSeq && t.goalId===g.id && !t.done));
+      return;
+    }
+    // 该目标所有「未完成」的分解怪物（可选区 + 当日表非 done）：只保留指向最靠前未完成动作的那一个，其余删除，杜绝重复/残留
+    const monsters=[...state.backlog, ...state.today].filter(t=>t.decompSeq && t.goalId===g.id && !t.done);
+    let keep=monsters.find(t=>t.decompSeq===f.seq);
+    if(!keep){
+      keep={id:uid(), title:f.text||("动作"+f.seq), diff:"普通", goalId:g.id, decompSeq:f.seq, date:Date.now()};
+      state.backlog.push(keep);
+    } else if(keep.title!==(f.text||("动作"+f.seq))){
+      keep.title=f.text||("动作"+f.seq);
+    }
+    const stale=monsters.filter(t=>t!==keep);
+    if(stale.length){
+      const ids=new Set(stale.map(t=>t.id));
+      state.backlog=state.backlog.filter(t=>!ids.has(t.id));
+      state.today=state.today.filter(t=>!ids.has(t.id));
     }
   });
 }
@@ -3757,7 +3772,14 @@ function completeTask(id){
     state.done=state.done.filter(d=>d.id!==id);
     t.done=false; t.doneDate=null;
     delete t.deferDate; delete t.cycleDefer;
-    if(t.decompSeq && t.goalId){ const dg=goalById(t.goalId); if(dg&&dg.decompActions){ const da=dg.decompActions.find(x=>x.seq===t.decompSeq); if(da) da.doneAt=null; } }
+    if(t.decompSeq && t.goalId){ const dg=goalById(t.goalId); if(dg&&dg.decompActions){
+      const da=dg.decompActions.find(x=>x.seq===t.decompSeq);
+      if(da && da.doneAt) da.doneAt=null;                       // 正常：复位匹配动作
+      else {                                                     // 兜底：链接被旧版 bug 篡改(decompSeq 指向了下一动作)时，复位该目标下唯一仍标记完成的动作
+        const doneActs=dg.decompActions.filter(x=>x.doneAt);
+        if(doneActs.length===1) doneActs[0].doneAt=null;
+      }
+    } }
     save(); renderToday(); renderDone(); renderExec(); renderGoals(); renderBacklog(); refreshStats();
     toast("已恢复，重新计入今日","ok");
     return;
@@ -3779,7 +3801,7 @@ function completeTask(id){
   state.done.unshift(doneItem);
   state.done[0].pts=donePoints(state.done[0]);
   delete state.exec[id];              // 完成即退出执行区
-  if(t.decompSeq && t.goalId){ const dg=goalById(t.goalId); if(dg&&dg.decompActions){ const da=dg.decompActions.find(x=>x.seq===t.decompSeq && !x.doneAt); if(da) da.doneAt=Date.now(); } }
+  if(t.decompSeq && t.goalId){ const dg=goalById(t.goalId); if(dg&&dg.decompActions){ const da=dg.decompActions.find(x=>x.seq===t.decompSeq); if(da) da.doneAt=Date.now(); } }
   if(state.activeId===id) state.activeId=null;
   t.done=true; t.doneDate=dayStr();   // 标记今天击败，保留在当天怪物表（划线显示）；跨天后由 rolloverDay 清理非今日击败项
   if(t.days && (t.dayNum||1) < t.days){   // 多日怪物：未满天数 → 自动顺延到明天，次日出现下一序号（如 1/5 → 2/5）
