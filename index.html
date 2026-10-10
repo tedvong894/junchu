@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-0950 修复备忘录/灵感记录后消失：mergeAdditions 首拉漏合并 notes(备忘录/今日成长/商务) 与 strat(灵感/愿景/战略)，现已并入，避免开机首拉覆盖本地新增；sw 缓存 wb-v23→wb-v24。同步模型沿用 v1421。-->
   <!-- v=20261010-0908 导航栏调整：顶部快捷区取消「每日」「完成」，换成「习惯」「愿景」（点击跳转对应模块，内在功能不变）；refreshStats 改为计数守卫（st-done 不再硬取），新增 st-habit/st-vision 计数；sw 缓存 wb-v22→wb-v23。同步模型沿用 v1421。-->
   <!-- v=20261009-1645 目标分解面板改版：由「横向动作行」改为「目录/子目录折叠树」——每个分解目标是一个可折叠目录节点，动作作为子目录条目前挂，点击目标头展开/折叠；目标分解区可同时容纳多个待分解目标；动作增删/Enter 新增/最靠前动作自动进怪物表逻辑不变。同步模型沿用 v1421。-->
   <!-- v=20261009-1345 新增「目标分解」板块（位于战略区目标与习惯之间）：目标编辑新增「是否分解」下拉；分解目标进度强制自动，其动作逐条(序号1起)管理，最靠前未完成动作自动成为可选怪物表里的怪物，击败后自动导入下一动作，可选/当天怪物表逻辑不变。同步模型沿用 v1421。-->
@@ -1508,6 +1509,16 @@ function mergeAdditions(local, cloud){
     const l=(local&&local[k])||[], c=(out[k]=out[k]||[]);
     const ids=new Set((c||[]).map(x=>x&&x.id));
     (l||[]).forEach(x=>{ if(x&&x.id!=null && !ids.has(x.id)) c.push(x); });
+  });
+  /* v=20261010-0950 修复：首拉同样并入 notes（备忘录/今日成长/商务）与 strat（灵感/愿景/战略）的本地新增，
+     否则开机首拉会把本地刚记录的备忘录/灵感等覆盖丢失（二次输入才生效）。已有条目仍以云端为准。 */
+  ["notes","strat"].forEach(group=>{
+    const lG=(local&&local[group])||{}, cG=(out[group]=out[group]||{});
+    Object.keys(lG).forEach(cat=>{
+      const l=(lG[cat])||[], c=(cG[cat]=cG[cat]||[]);
+      const ids=new Set((c||[]).map(x=>x&&x.id));
+      (l||[]).forEach(x=>{ if(x&&x.id!=null && !ids.has(x.id)) c.push(x); });
+    });
   });
   return out;
 }
