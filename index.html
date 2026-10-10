@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1330 习惯板块砍掉「进度设置」：习惯默认已养成、无养成进度 → 删除添加行/编辑弹窗的「进度方式(自动/手动)」与「手动进度」控件、列表里的进度条与百分比、关联怪物进度行、手动滑块监听；habitStats 去掉手动分支；相关文案改为「已经养成」。sw 缓存 wb-v31→wb-v32。同步模型沿用 v1421。-->
   <!-- v=20261010-1325 顶栏收进一排（桌面）：①删品牌下「本地优先 · 多端同步」备注行；②压缩等级/经验大卡（padding 5px 9px、字号缩小）与小人；③16 个快捷格改 flex:1 1 0 等宽自适应，与品牌/大卡同行放满，放不下按比例微缩+省略号，不再折 2 行。全部改动包在 @media(min-width:821px)，iPhone 端三段式布局不变。sw 缓存 wb-v30→wb-v31。同步模型沿用 v1421。-->
   <!-- v=20261010-1150 顶部快捷区移除「经验」快捷按钮：累积经验值已在左侧大卡显示，无须在快捷区重复。快捷区现为 16 个（全部功能区块除「回收站」「经验」）。sw 缓存 wb-v29→wb-v30。同步模型沿用 v1421。-->
   <!-- v=20261010-1140 顶部快捷按钮格式美化：①桌面 .stat 统一 min-width:56px + 左右 padding 6px（格子等宽整齐，4 字标签放得下）；②桌面格间距 8→6px；③「经验」按钮改显示今日经验值 allTrendData()[dayStr()]（原显示累积总分，与旁边累积经验值大卡重复且撑宽格子）。移动端样式有独立覆盖，iPhone 端仍不变。sw 缓存 wb-v28→wb-v29。同步模型沿用 v1421。-->
@@ -1361,17 +1362,16 @@
       </section>
       <!-- 习惯（从目标分拆：更偏日常重复的目标；不在顶部导航区显示） -->
       <section class="panel" id="p-habit" data-page-node-id="p-habit-1">
-        <div class="p-head" data-page-node-id="p-habit-2"><span class="pmod" data-page-node-id="p-habit-3">🌀</span><h2 data-page-node-id="p-habit-4">习惯</h2><span class="hint" data-page-node-id="p-habit-5">进度自动/手动 · 养成 +200 分</span><span class="collapse-ind" aria-hidden="true" data-page-node-id="p-habit-6"><svg viewBox="0 0 16 16" data-page-node-id="p-habit-7"><path d="M3.5 6.2l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="p-habit-8"/></svg></span></div>
+        <div class="p-head" data-page-node-id="p-habit-2"><span class="pmod" data-page-node-id="p-habit-3">🌀</span><h2 data-page-node-id="p-habit-4">习惯</h2><span class="hint" data-page-node-id="p-habit-5">已经养成的日常重复 · 可关联怪物</span><span class="collapse-ind" aria-hidden="true" data-page-node-id="p-habit-6"><svg viewBox="0 0 16 16" data-page-node-id="p-habit-7"><path d="M3.5 6.2l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="p-habit-8"/></svg></span></div>
         <div class="p-body" data-page-node-id="p-habit-9"><div class="list" id="list-habit" data-page-node-id="p-habit-10"></div></div>
         <div class="p-foot" data-page-node-id="p-habit-11">
           <div class="add-row" data-page-node-id="p-habit-12">
             <input id="in-habit" placeholder="添加一个习惯，如：每天读书 30 分钟…" style="flex:1 1 auto; min-width:120px" data-page-node-id="p-habit-13">
             <select id="sel-habit-imp" data-page-node-id="p-habit-14"><option value="1" data-page-node-id="p-habit-15">关键</option><option value="2" data-page-node-id="p-habit-16">常规</option><option value="3" data-page-node-id="p-habit-17">备选</option></select>
-            <select id="sel-habit-mode" title="进度计算方式" data-page-node-id="p-habit-18"><option value="auto" data-page-node-id="p-habit-19">进度·自动(关联怪物)</option><option value="manual" data-page-node-id="p-habit-20">进度·手动拉</option></select>
             <input type="date" id="in-habit-dead" title="截止日期（留空=不限）" style="flex:0 0 auto" data-page-node-id="p-habit-21">
             <button class="btn-primary" id="btn-add-habit" data-page-node-id="p-habit-22">添加</button>
           </div>
-          <div class="hint" style="font-size:11.5px; margin-top:6px" data-page-node-id="p-habit-23">习惯是更偏日常重复的目标。进度支持「自动(按关联怪物)」或「手动拉」，养成一次性 +200 点经验值。级别影响关联怪物的经验值（🔴关键 🟡常规 🟢备选）。</div>
+          <div class="hint" style="font-size:11.5px; margin-top:6px" data-page-node-id="p-habit-23">习惯是「已经养成」的日常重复事项。级别影响关联怪物的经验值（🔴关键 🟡常规 🟢备选）。</div>
         </div>
       </section>
       </div><!-- /.region-strat -->
@@ -2986,16 +2986,11 @@ function delDecompAction(g, seq){
   save(); renderDecomp(); syncDecompBacklog(); renderBacklog();
 }
 /* ---------- 习惯（从目标分拆；关联怪物计分逻辑与目标完全一致） ---------- */
+/* v=20261010-1330 习惯默认已养成、无养成进度：只统计关联怪物数量 */
 function habitStats(hid){
-  const h=habitById(hid);
-  if(h && h.progressMode==="manual"){
-    let p=Math.round(h.manualPct||0); if(p<0)p=0; if(p>100)p=100;
-    return {open:0, done:0, total:0, pct:p, manual:true};
-  }
   const open = state.backlog.filter(t=>t.goalId===hid).length + state.today.filter(t=>t.goalId===hid).length + (state.routines||[]).filter(r=>routineActive(r)&&r.goalId===hid).length;
   const done = state.done.filter(d=>d.goalId===hid).length;
-  const total = open + done;
-  return {open, done, total, pct: total ? Math.round(done*100/total) : 0, manual:false};
+  return {open, done, total: open+done};
 }
 function renderHabits(){
   const el=document.getElementById("list-habit"); if(!el) return;
@@ -3004,19 +2999,12 @@ function renderHabits(){
   const cEl=document.getElementById("cnt-habit"); if(cEl) cEl.textContent=act;
   refreshLinkedSelects();
   if(!arr.length){
-    el.innerHTML=`<div class="empty">还没有习惯。习惯是「更偏日常重复」的目标：添加怪物时选「关联习惯」，完成即自动推进进度；也可以选「进度·手动拉」自己拖动控制。习惯养成一次性 +${GOAL_BONUS} 分</div>`;
+    el.innerHTML=`<div class="empty">还没有习惯。习惯是「已经养成」的日常重复事项：添加怪物时可选「关联习惯」获得关联加成。</div>`;
     return;
   }
   const ds=dayStr();
   const isTodayDone=h=> h.doneAt && dayStr(h.doneAt)===ds;
   const habitItemHtml=h=>{
-    const st=habitStats(h.id);
-    const progHtml = st.manual
-      ? `<div class="goal-progress"><div class="goal-bar"><i style="width:${st.pct}%"></i></div><span class="goal-pct">${st.pct}%</span></div>
-         <input type="range" class="goal-range" min="0" max="100" step="5" value="${st.pct}" data-id="${h.id}" ${h.doneAt?'disabled':''}>
-         <span class="gmeta">手动进度</span>`
-      : `<div class="goal-progress"><div class="goal-bar"><i style="width:${st.pct}%"></i></div><span class="goal-pct">${st.pct}%</span></div>
-         <span class="gmeta">${st.done}/${st.total} 个关联怪物击败${st.total===0?'（还没怪物关联）':''}</span>`;
     const overdue=!h.doneAt && h.deadline && ds>h.deadline;
     const imp=habitImp(h);
     const tb=`<span class="gd ${imp.dot}" title="${imp.k}"></span>`;
@@ -3032,7 +3020,6 @@ function renderHabits(){
       <div class="row1"><span class="g-seq">${h.seq||1}</span>${tb}<div class="title gname">${esc(h.name)}</div>${stateTag}${dead}
         <div class="acts">${acts}</div>
       </div>
-      <div class="row1">${progHtml}</div>
     </div>`;
   };
   const active=arr.filter(h=>!h.doneAt);
@@ -3045,17 +3032,15 @@ function renderHabits(){
     html+=`<details class="goal-history"><summary>📜 历史养成习惯（${doneOld.length}）· 点击展开</summary>${doneOld.map(habitItemHtml).join("")}</details>`;
   }
   el.innerHTML=html;
-  el.querySelectorAll(".goal-range").forEach(r=>setRangeFill(r));
 }
 function addHabit(){
   const inp=document.getElementById("in-habit");
   const v=inp.value.trim();
   if(!v){ toast("请输入习惯内容","warn"); return; }
-  state.habits.push({id:uid(),name:v,imp:document.getElementById("sel-habit-imp").value||"1",deadline:document.getElementById("in-habit-dead").value||"",createdAt:Date.now(),doneAt:null,progressMode:document.getElementById("sel-habit-mode").value||"auto",manualPct:0,seq:(state.habits.reduce((m,h)=>Math.max(m,(h.seq||0)),0))+1});
+  state.habits.push({id:uid(),name:v,imp:document.getElementById("sel-habit-imp").value||"1",deadline:document.getElementById("in-habit-dead").value||"",createdAt:Date.now(),doneAt:null,seq:(state.habits.reduce((m,h)=>Math.max(m,(h.seq||0)),0))+1});
   inp.value="";
-  document.getElementById("sel-habit-mode").value="auto";
   save(); renderHabits(); refreshStats();
-  toast("习惯已创建。添加怪物时选「关联习惯」即可自动推进进度","ok");
+  toast("习惯已创建。添加怪物时可「关联习惯」","ok");
 }
 document.getElementById("btn-add-habit").addEventListener("click",addHabit);
 document.getElementById("in-habit").addEventListener("keydown",e=>{ if(e.key==="Enter") addHabit(); });
@@ -3064,7 +3049,6 @@ document.getElementById("list-habit").addEventListener("click",e=>{
   const h=habitById(b.dataset.id); if(!h) return;
   if(b.dataset.act==="hEdit"){
     const imp=habitImp(h);
-    const mode=h.progressMode || "auto";
     openEditModal({
       title: "编辑习惯",
       badgeText: imp.k,
@@ -3079,29 +3063,15 @@ document.getElementById("list-habit").addEventListener("click",e=>{
               <option value="3" ${imp.v==='3'?'selected':''}>备选</option>
             </select>
           </div>
-          <div class="edit-row"><label>截止日期（留空=不设期限）</label><input type="date" id="ed-h-dead" value="${esc(h.deadline||'')}"></div>
-          <div class="edit-row"><label>进度方式</label>
-            <select id="ed-h-mode">
-              <option value="auto" ${mode==='auto'?'selected':''}>自动（按关联怪物完成率）</option>
-              <option value="manual" ${mode==='manual'?'selected':''}>手动拖动</option>
-            </select>
-          </div>
-          <div class="edit-row inline" id="ed-h-manual-row" style="${mode==='manual'?'':'display:none'}">
-            <label>手动进度</label>
-            <input type="range" id="ed-h-pct" min="0" max="100" value="${Math.round(h.manualPct||0)}">
-            <span class="range-val" data-range-for="ed-h-pct">${Math.round(h.manualPct||0)}%</span>
-          </div>`;
+          <div class="edit-row"><label>截止日期（留空=不设期限）</label><input type="date" id="ed-h-dead" value="${esc(h.deadline||'')}"></div>`;
         return {html, collect:(root)=>{
           const name=root.querySelector("#ed-h-name").value.trim();
           if(!name){ toast("习惯名称不能为空","warn"); return false; }
           const deadline=root.querySelector("#ed-h-dead").value || "";
           if(deadline && !/^\d{4}-\d{2}-\d{2}$/.test(deadline)){ toast("日期格式不对","warn"); return false; }
           const imp=root.querySelector("#ed-h-imp").value;
-          const progressMode=root.querySelector("#ed-h-mode").value;
-          let manualPct=parseInt(root.querySelector("#ed-h-pct").value,10)||0;
-          if(manualPct<0)manualPct=0; if(manualPct>100)manualPct=100;
           let seq=parseInt(root.querySelector("#ed-h-seq").value,10); if(!seq||seq<1) seq=1;
-          return {name, deadline, imp, progressMode, manualPct, seq};
+          return {name, deadline, imp, seq};
         }};
       },
       onSave:(res)=>{
@@ -3123,7 +3093,7 @@ document.getElementById("list-habit").addEventListener("click",e=>{
   }
   if(b.dataset.act==="hDone"){
     const st=habitStats(h.id);
-    if(h.progressMode!=="manual" && st.open>0 && !confirm(`该习惯下还有 ${st.open} 个未击败怪物，确定现在就标记养成吗？`)) return;
+    if(st.open>0 && !confirm(`该习惯下还有 ${st.open} 个未击败怪物，确定现在就标记养成吗？`)) return;
     if(!confirm(`确认习惯「${h.name}」已养成？\n\n养成奖励 +${GOAL_BONUS} 分`)) return;
     h.doneAt=Date.now();
     normalizeActiveHabitSeq();
@@ -3139,17 +3109,6 @@ document.getElementById("list-habit").addEventListener("click",e=>{
     save(); renderHabits(); refreshStats();
     toast("已撤销养成","ok");
   }
-});
-/* 手动进度滑块：拖动实时更新进度条与百分比，不重渲染 */
-document.getElementById("list-habit").addEventListener("input",e=>{
-  const r=e.target.closest(".goal-range"); if(!r) return;
-  const h=habitById(r.dataset.id); if(!h) return;
-  let v=parseInt(r.value,10)||0; if(v<0)v=0; if(v>100)v=100;
-  h.manualPct=v;
-  setRangeFill(r);
-  const row=r.closest(".row1");
-  if(row){ const bar=row.querySelector(".goal-bar i"); const pct=row.querySelector(".goal-pct"); if(bar)bar.style.width=v+"%"; if(pct)pct.textContent=v+"%"; }
-  save();
 });
 
 /* 今日怪物数 = 手动安排的当天怪物 + 当天生效的每日怪物 */
