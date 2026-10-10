@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1130 顶部导航快捷按钮补全全部功能区块（战略/进阶/生活，唯「回收站」不列）：新增 数字资产/战略/目标分解/每日/已击败/经验/商务 共 7 个快捷按钮，按左导航分组顺序排列；新增项 class="stat-new" 仅桌面显示，iPhone 端(<=820px)隐藏、布局保持不变；桌面顶栏放不下自动换行成 2 行，.app 高度改随实测顶栏高(--topbar-h)自适应，避免溢出。sw 缓存 wb-v27→wb-v28。同步模型沿用 v1421。-->
   <!-- v=20261010-1105 战略模块新增「数字资产」板块（今日成长之下）：记录能持续带来收益的非实物资产，每条含 名称+类型(广告/收益账号/涨粉账号/其它)+情况说明，支持增删改；数据存顶层 state.assets 数组，已并入 load/首拉/导入迁移与首拉 mergeAdditions 防丢。sw 缓存 wb-v26→wb-v27。同步模型沿用 v1421。-->
   <!-- v=20261010-1047 修复目标分解「恢复(撤销击败)无法逆操作」：重写 syncDecompBacklog 为稳健对账——每个分解目标只保留最靠前未完成动作对应的一个激活怪物，删除残留/重复怪物；恢复分支在链接被旧版 bug 篡改时兜底复位该目标下唯一仍标记完成的动作；击败分支按 seq 精确匹配。连带修掉恢复后残留重复怪物。sw 缓存 wb-v25→wb-v26。同步模型沿用 v1421。-->
   <!-- v=20261010-1035 修复目标分解：动作击败后下一个动作误出现在当日表且已击败（syncDecompBacklog/renderDecomp 把已击败的分解怪物仍当激活怪物，导致下一个动作就地改名卡在当日表）；改为只认未击败(!t.done)的分解怪物为激活项，击败后下一动作回到可选怪物区由用户手动入当日；sw 缓存 wb-v24→wb-v25。同步模型沿用 v1421。-->
@@ -377,7 +378,7 @@
   /* ===== 布局：桌面 Master-Detail（左导航 + 右操作区） ===== */
   .app{
     display:flex; gap:16px; padding:18px 22px 34px;
-    height:calc(100vh - 64px);
+    height:calc(100vh - var(--topbar-h, 64px));   /* v=20261010-1130 顶栏可为多行：高度随实测顶栏高自适应 */
   }
   .modnav{flex:0 0 234px; display:flex; flex-direction:column; gap:10px; overflow:auto; padding-right:2px}
   .mod-tab{
@@ -551,6 +552,7 @@
     .topbar-stats.hide-routine .stat[data-mod="routine"]{display:none}
     .topbar-stats .stat[data-mod="calendar"]{display:none}
     .topbar-stats .stat[data-mod="backlog"]{display:none}
+    .topbar-stats .stat.stat-new{display:none}   /* v=20261010-1130 iPhone 端暂不变：本次新增的快捷按钮移动端一律隐藏 */
     .stat{padding:5px 2px; min-width:0}
     .stat-n{font-size:13px}
     .stat-l{font-size:10px; white-space:nowrap}
@@ -1164,14 +1166,25 @@
     <div class="topbar-stats" data-page-node-id="5ftGXEm03bxBJRaXHkZlB4">
       <button class="stat" id="keydays-chip" data-mod="keyday" title="切换倒计日" style="display:none"><span class="stat-n"><span id="kd-chip-days"></span><span id="kd-chip-unit" class="kd-chip-unit"></span></span><span class="stat-l" id="kd-chip-name"></span></button>
       <div class="kd-dropdown" id="kd-dropdown" style="display:none"></div>
+      <!-- v=20261010-1130 补全快捷按钮：按左导航分组顺序列出全部功能区块（战略/进阶/生活），唯「回收站」不列。
+           新增按钮统一 class="stat-new"：桌面显示、iPhone 端(<=820px)隐藏，保持 iPhone 现状不变。 -->
+      <!-- 战略区 -->
       <button class="stat" data-mod="note-daily" data-page-node-id="Ez4F1DHpSXgSFnuIPHmXh8"><span class="stat-n" id="st-daily" data-page-node-id="4kHJeNvMd3mXlaNQ2POMLR">0</span><span class="stat-l" data-page-node-id="uDRyI7anU3GBXBxgCBvIGz">今日成长</span></button>
+      <button class="stat stat-new" data-mod="asset" data-page-node-id="asset-stat-1"><span class="stat-n" id="st-asset">0</span><span class="stat-l">数字资产</span></button>
+      <button class="stat" data-mod="vision" data-page-node-id="vision-stat-1"><span class="stat-n" id="st-vision" data-page-node-id="vision-stat-2">0</span><span class="stat-l" data-page-node-id="vision-stat-3">愿景</span></button>
+      <button class="stat stat-new" data-mod="strategy" data-page-node-id="strategy-stat-1"><span class="stat-n" id="st-strategy">0</span><span class="stat-l">战略</span></button>
       <button class="stat" data-mod="idea" data-page-node-id="idea-stat-1"><span class="stat-n" id="st-idea">0</span><span class="stat-l">灵感</span></button>
       <button class="stat" data-mod="goal" data-page-node-id="HSbr8JKm3FYDYIBVowOFiY"><span class="stat-n" id="st-goal" data-page-node-id="0JN9DzjEkzoojpeCLvRGfw">0</span><span class="stat-l" data-page-node-id="f9WRvudBuixUkBMGlcCnU2">目标</span></button>
+      <button class="stat stat-new" data-mod="decomp" data-page-node-id="decomp-stat-1"><span class="stat-n" id="st-decomp">0</span><span class="stat-l">目标分解</span></button>
+      <button class="stat" data-mod="habit" data-page-node-id="habit-stat-1"><span class="stat-n" id="st-habit" data-page-node-id="habit-stat-2">0</span><span class="stat-l" data-page-node-id="habit-stat-3">习惯</span></button>
+      <!-- 进阶区 -->
       <button class="stat" data-mod="backlog" data-page-node-id="4lzU4DlglJR7rHCxKaDvTR"><span class="stat-n" id="st-back" data-page-node-id="lEZ7oJwZSRigs0ChW3y0X7">0</span><span class="stat-l" data-page-node-id="lltvcAjcuDYcwh7nBBXx2g">可选</span></button>
       <button class="stat" data-mod="today" data-page-node-id="bRDDQcsBYLQLMIMK8Ik3LH"><span class="stat-n" id="st-today" data-page-node-id="Pxxch1z7qsdyLvrwhD1XoE">0</span><span class="stat-l" data-page-node-id="kWn7HkgXL81bH0WFSkUn3r">今日</span></button>
-      <button class="stat" data-mod="habit" data-page-node-id="habit-stat-1"><span class="stat-n" id="st-habit" data-page-node-id="habit-stat-2">0</span><span class="stat-l" data-page-node-id="habit-stat-3">习惯</span></button>
-      <!-- 灵感快捷按钮见上方 data-mod="idea" -->
-      <button class="stat" data-mod="vision" data-page-node-id="vision-stat-1"><span class="stat-n" id="st-vision" data-page-node-id="vision-stat-2">0</span><span class="stat-l" data-page-node-id="vision-stat-3">愿景</span></button>
+      <button class="stat stat-new" data-mod="routine" data-page-node-id="routine-stat-1"><span class="stat-n" id="st-routine">0</span><span class="stat-l">每日</span></button>
+      <button class="stat stat-new" data-mod="done" data-page-node-id="done-stat-1"><span class="stat-n" id="st-done">0</span><span class="stat-l">已击败</span></button>
+      <button class="stat stat-new" data-mod="trend" data-page-node-id="trend-stat-1"><span class="stat-n" id="st-trend">0</span><span class="stat-l">经验</span></button>
+      <!-- 生活区 -->
+      <button class="stat stat-new" data-mod="note-biz" data-page-node-id="biz-stat-1"><span class="stat-n" id="st-biz">0</span><span class="stat-l">商务</span></button>
       <button class="stat" data-mod="note-life" title="生活备忘录"><span class="stat-n" id="st-life">0</span><span class="stat-l">备忘录</span></button>
       <button class="stat" data-mod="calendar" id="cal-block" title="实时日历"><span class="stat-n" id="cal-time">--:--:--</span><span class="stat-l" id="cal-date">--/--</span></button>
     </div>
@@ -3215,6 +3228,16 @@ function refreshStats(){
   if(habitEl) habitEl.textContent=(state.habits||[]).filter(h=>!h.doneAt).length;
   const visionEl=document.getElementById("st-vision");
   if(visionEl) visionEl.textContent=getStrat("vision").length;
+  const assetEl=document.getElementById("st-asset");
+  if(assetEl) assetEl.textContent=(state.assets||[]).length;
+  const stratEl=document.getElementById("st-strategy");
+  if(stratEl) stratEl.textContent=getStrat("strategy").length;
+  const decompEl=document.getElementById("st-decomp");
+  if(decompEl) decompEl.textContent=(state.goals||[]).filter(g=>g.decompose).length;
+  const trendEl=document.getElementById("st-trend");
+  if(trendEl) trendEl.textContent=totalScore().toLocaleString();
+  const bizEl=document.getElementById("st-biz");
+  if(bizEl) bizEl.textContent=getNotes("biz").length;
   const execEl2=document.getElementById("st-exec");
   if(execEl2){ execEl2.textContent = execCount(); }
   const sc=totalScore();
@@ -4629,15 +4652,14 @@ document.addEventListener("gesturechange", e=>e.preventDefault());
   }
   function lock(){
     fitStats();   // 先决定快捷区行数/格数，再量顶栏高度
+    if(topbar){
+      const h = Math.ceil(topbar.getBoundingClientRect().height);
+      app.style.setProperty("--topbar-h", h + "px");   // v=20261010-1130 桌面/手机统一记录顶栏实际高度（桌面可为多行）
+    }
     if(window.innerWidth<=820){
       app.style.height = window.innerHeight + "px";
-      if(topbar){
-        const h = Math.ceil(topbar.getBoundingClientRect().height);
-        app.style.setProperty("--topbar-h", h + "px");
-      }
     } else {
-      app.style.height = "";   // 桌面端交回 CSS（calc(100vh - 64px)）
-      app.style.removeProperty("--topbar-h");
+      app.style.height = "";   // 桌面端：CSS 用 --topbar-h 计算高度（顶栏多行也不溢出）
     }
   }
   lock();
