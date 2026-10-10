@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1610 数字资产编辑面板重排 + 新增「资产收益情况」：①修丑根因——.asset-edit 原本不是 flex/grid，select 与 textarea 作为 inline 元素被挤到同一行、按钮又套在 .add-row 里继承了紫色渐变大按钮样式；改为「标签在上、控件在下」的表单栅格：资产名称整行 → 类型(128px)+收益一行两列 → 情况说明整行 → 底部操作行（删除=左侧安静文字键、取消/保存=右侧等高32px低饱和按钮）。②新增收益情况字段，label 与 placeholder 随类型联动：广告=月收入/年收入、收益账号=月收入、涨粉账号=累积粉丝、其它=收益情况；数据存 asset.income（老数据无此字段自动兼容），查看态以紫色小徽标展示。sw 缓存 wb-v34→wb-v35。同步模型沿用 v1421。-->
   <!-- v=20261010-1520 修复「文字输入类模块 编辑/删除 要点2次、第一次自动失效」：根因=每次云端拉取（开机/每30s轮询/每次窗口获焦）都无条件 state=云端 并整页 renderAll()，重渲染若落在一次点击的 mousedown~mouseup 之间，按钮节点被重建→浏览器不派发 click→第一次操作被吞。修法：①用 canonStr（递归排序 key，兼容 Supabase jsonb 不保序）比对云端内容，与 _lastCloudJson 一致则直接跳过、不换 state 不重渲染（但保留 trashPurge/rolloverDay 轻量维护，跨天滚动行为不变）；pushState 成功后同步刷新 _lastCloudJson。②renderAll() 加「按住不放则推迟」守卫（pointerup/mouseup/touchend 松手后补渲染），从根上杜绝点击被重渲染吃掉。同步语义不变（云端权威 + 本地编辑即推送，v1421）。sw 缓存 wb-v33→wb-v34。-->
   <!-- v=20261010-1345 习惯再砍两项（用户「1和2都不要」）：①去掉「🏆养成/↩撤销达成」动作（及 doneAt 完成态、已养成标签、历史养成习惯区）——习惯恒为进行中，无完成态；②去掉「截止日期」输入与显示。连带：reorderableHabits/linkItemSelHtml/refreshLinkedSelects/editTaskFields/refreshStats 中习惯不再按 doneAt 过滤；habitStats 删除。计分无影响（习惯 doneAt 从不计入 totalScore）。sw 缓存 wb-v32→wb-v33。同步模型沿用 v1421。-->
   <!-- v=20261010-1330 习惯板块砍掉「进度设置」：习惯默认已养成、无养成进度 → 删除添加行/编辑弹窗的「进度方式(自动/手动)」与「手动进度」控件、列表里的进度条与百分比、关联怪物进度行、手动滑块监听；habitStats 去掉手动分支；相关文案改为「已经养成」。sw 缓存 wb-v31→wb-v32。同步模型沿用 v1421。-->
@@ -386,14 +387,36 @@
   .strat-view .note-meta{margin-right:2px;white-space:nowrap}
   .strat-edit-body{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-family:inherit;resize:vertical;margin-bottom:6px;box-sizing:border-box}
   .strat-edit-body:focus{outline:none;border-color:var(--brand)}
-  /* ===== 数字资产（战略模块）：名称 + 类型徽标 + 情况说明 ===== */
+  /* ===== 数字资产（战略模块）：名称 + 类型徽标 + 收益情况 + 说明 ===== */
   .asset-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .asset-name{font-size:13.5px;font-weight:600;color:var(--ink)}
   .asset-badge{font-size:11px;font-weight:600;color:#6d28d9;background:#f5f3ff;border:1px solid #e9e4ff;border-radius:999px;padding:1px 8px}
+  .asset-income{font-size:12.5px;color:var(--ink2);margin-top:5px;display:flex;align-items:center;gap:7px;min-width:0}
+  .asset-income-l{font-size:11px;font-weight:600;color:#6d28d9;background:#f5f3ff;border:1px solid #e9e4ff;border-radius:999px;padding:1px 8px;flex:0 0 auto}
+  .asset-income-v{font-weight:600;color:var(--ink);word-break:break-word;min-width:0}
   .asset-desc{font-size:12.5px;line-height:1.7;color:var(--ink3);margin-top:5px;white-space:pre-wrap;word-break:break-word}
-  .asset-edit-name{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-family:inherit;box-sizing:border-box;margin-bottom:6px}
-  .asset-edit-type{flex:0 0 auto;margin-bottom:6px}
-  .asset-edit-name:focus{outline:none;border-color:var(--brand)}
+  /* 编辑区（v=20261010-1610 重排）：标签在上、控件在下，不再互相挤压 */
+  .asset-edit{border-top:1px dashed var(--line);margin-top:10px;padding-top:11px}
+  .asset-fld{display:block;min-width:0}
+  .asset-fld-l{display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-bottom:4px}
+  .asset-edit input,.asset-edit select,.asset-edit textarea{
+    width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;
+    padding:8px 10px;font-size:13.5px;font-family:inherit;background:#fff;color:var(--ink);outline:none;
+    transition:border-color .15s, box-shadow .15s; margin:0;
+  }
+  .asset-edit input:focus,.asset-edit select:focus,.asset-edit textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  .asset-edit textarea{resize:vertical;min-height:52px;line-height:1.6}
+  .asset-row2{display:flex;gap:9px;margin-top:9px}
+  .asset-row2 .asset-fld{flex:1 1 0;min-width:0}
+  .asset-row2 .asset-fld-t{flex:0 0 128px}
+  .asset-actions{display:flex;align-items:center;gap:8px;margin-top:11px}
+  .asset-del{background:none;border:none;color:#dc2626;font-size:12.5px;font-weight:600;font-family:inherit;padding:6px 10px;border-radius:9px;cursor:pointer;transition:.15s}
+  .asset-del:hover{background:#fef2f2}
+  .asset-btn{height:32px;padding:0 16px;border-radius:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s;border:1px solid var(--line);background:#fff;color:var(--ink2)}
+  .asset-btn:hover{border-color:var(--brand);color:var(--brand)}
+  .asset-btn.primary{border:none;background:var(--brand);color:#fff}
+  .asset-btn.primary:hover{filter:brightness(1.08)}
+  .asset-btn:active{transform:scale(.97)}
   .asset-add-desc{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-family:inherit;resize:vertical;margin-top:6px;box-sizing:border-box}
   .asset-add-desc:focus{outline:none;border-color:var(--brand)}
 
@@ -2089,6 +2112,9 @@ function stratSave(id,nid){
 const ASSET_TYPES=[{v:"ad",k:"广告"},{v:"rev",k:"收益账号"},{v:"fan",k:"涨粉账号"},{v:"other",k:"其它"}];
 function assetTypeLabel(v){ const t=ASSET_TYPES.find(x=>x.v===String(v||"other")); return t?t.k:"其它"; }
 const getAssets = () => (state.assets||[]);
+/* 收益情况的标签与占位提示随类型联动（v=20261010-1610） */
+function assetIncomeLabel(v){ switch(String(v||"other")){ case "ad": return "月收入 / 年收入"; case "rev": return "月收入"; case "fan": return "累积粉丝"; default: return "收益情况"; } }
+function assetIncomePh(v){ switch(String(v||"other")){ case "ad": return "如：月 2000 / 年 2.4 万"; case "rev": return "如：每月带来 800 元"; case "fan": return "如：1.2 万粉"; default: return "如：每月带来 2 个咨询订单"; } }
 function renderAssets(){
   const el=document.getElementById("list-asset"); if(!el) return;
   const arr=[...getAssets()];
@@ -2096,19 +2122,25 @@ function renderAssets(){
   if(!arr.length){ el.innerHTML=`<div class="empty">还没有数字资产，下面添加一条：如「抖音·制造业情报号」</div>`; return; }
   el.innerHTML=arr.map(it=>{
     const descHtml=(it.desc?`<div class="asset-desc">${esc(it.desc)}</div>`:"");
+    const incHtml=(it.income?`<div class="asset-income"><span class="asset-income-l">${esc(assetIncomeLabel(it.type))}</span><span class="asset-income-v">${esc(it.income)}</span></div>`:"");
     return `<div class="strat-item" data-id="${it.id}">
       <div class="asset-view">
         <div class="asset-title-row"><b class="asset-name">${esc(it.name||"(未命名)")}</b><span class="asset-badge">${esc(assetTypeLabel(it.type))}</span><button class="icon-btn" data-act="assetEdit" data-id="${it.id}">编辑</button></div>
+        ${incHtml}
         ${descHtml}
       </div>
       <div class="asset-edit" style="display:none">
-        <input class="asset-edit-name" value="${esc(it.name||"")}" placeholder="资产名称">
-        <select class="asset-edit-type">${ASSET_TYPES.map(o=>`<option value="${o.v}"${String(it.type||"other")===o.v?" selected":""}>${o.k}</option>`).join("")}</select>
-        <textarea class="asset-edit-body" rows="2" placeholder="说明它怎么持续带来收益 / 目前情况">${esc(it.desc||"")}</textarea>
-        <div class="add-row" style="justify-content:flex-end">
-          <button class="icon-btn danger" data-act="assetDel" data-id="${it.id}" style="margin-right:auto">删除</button>
-          <button class="btn" data-act="assetCancel" data-id="${it.id}">取消</button>
-          <button class="btn-primary" data-act="assetSave" data-id="${it.id}">保存</button>
+        <label class="asset-fld"><span class="asset-fld-l">资产名称</span><input class="asset-edit-name" value="${esc(it.name||"")}" placeholder="如：抖音·制造业情报号"></label>
+        <div class="asset-row2">
+          <label class="asset-fld asset-fld-t"><span class="asset-fld-l">类型</span><select class="asset-edit-type">${ASSET_TYPES.map(o=>`<option value="${o.v}"${String(it.type||"other")===o.v?" selected":""}>${o.k}</option>`).join("")}</select></label>
+          <label class="asset-fld"><span class="asset-fld-l js-inc-label">${esc(assetIncomeLabel(it.type))}</span><input class="asset-edit-income" value="${esc(it.income||"")}" placeholder="${esc(assetIncomePh(it.type))}"></label>
+        </div>
+        <label class="asset-fld" style="margin-top:9px"><span class="asset-fld-l">情况说明</span><textarea class="asset-edit-body" rows="2" placeholder="说明它怎么持续带来收益 / 目前情况">${esc(it.desc||"")}</textarea></label>
+        <div class="asset-actions">
+          <button class="asset-del" data-act="assetDel" data-id="${it.id}">删除</button>
+          <span style="flex:1 1 auto"></span>
+          <button class="asset-btn" data-act="assetCancel" data-id="${it.id}">取消</button>
+          <button class="asset-btn primary" data-act="assetSave" data-id="${it.id}">保存</button>
         </div>
       </div>
     </div>`;
@@ -2141,8 +2173,17 @@ function assetSave(id){
   it.name=nm;
   const tp=root.querySelector('.asset-edit-type'); if(tp) it.type=tp.value;
   const ds=root.querySelector('.asset-edit-body'); if(ds) it.desc=(ds.value||"").trim();
+  const ic=root.querySelector('.asset-edit-income'); if(ic) it.income=(ic.value||"").trim();
   save(); renderAssets(); toast("已保存","ok");
 }
+/* 类型切换时联动更新「收益情况」的标签与占位提示（v=20261010-1610） */
+document.addEventListener("change", e=>{
+  const sel=e.target.closest("#list-asset .asset-edit-type"); if(!sel) return;
+  const row=sel.closest(".asset-row2"); if(!row) return;
+  const lab=row.querySelector(".js-inc-label"); const inc=row.querySelector(".asset-edit-income");
+  if(lab) lab.textContent=assetIncomeLabel(sel.value);
+  if(inc) inc.placeholder=assetIncomePh(sel.value);
+});
 function assetDel(id){
   if(!confirm("删除这个数字资产？")) return;
   state.assets=getAssets().filter(x=>x.id!==id);
