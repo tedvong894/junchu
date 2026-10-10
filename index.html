@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1325 顶栏收进一排（桌面）：①删品牌下「本地优先 · 多端同步」备注行；②压缩等级/经验大卡（padding 5px 9px、字号缩小）与小人；③16 个快捷格改 flex:1 1 0 等宽自适应，与品牌/大卡同行放满，放不下按比例微缩+省略号，不再折 2 行。全部改动包在 @media(min-width:821px)，iPhone 端三段式布局不变。sw 缓存 wb-v30→wb-v31。同步模型沿用 v1421。-->
   <!-- v=20261010-1150 顶部快捷区移除「经验」快捷按钮：累积经验值已在左侧大卡显示，无须在快捷区重复。快捷区现为 16 个（全部功能区块除「回收站」「经验」）。sw 缓存 wb-v29→wb-v30。同步模型沿用 v1421。-->
   <!-- v=20261010-1140 顶部快捷按钮格式美化：①桌面 .stat 统一 min-width:56px + 左右 padding 6px（格子等宽整齐，4 字标签放得下）；②桌面格间距 8→6px；③「经验」按钮改显示今日经验值 allTrendData()[dayStr()]（原显示累积总分，与旁边累积经验值大卡重复且撑宽格子）。移动端样式有独立覆盖，iPhone 端仍不变。sw 缓存 wb-v28→wb-v29。同步模型沿用 v1421。-->
   <!-- v=20261010-1130 顶部导航快捷按钮补全全部功能区块（战略/进阶/生活，唯「回收站」不列）：新增 数字资产/战略/目标分解/每日/已击败/经验/商务 共 7 个快捷按钮，按左导航分组顺序排列；新增项 class="stat-new" 仅桌面显示，iPhone 端(<=820px)隐藏、布局保持不变；桌面顶栏放不下自动换行成 2 行，.app 高度改随实测顶栏高(--topbar-h)自适应，避免溢出。sw 缓存 wb-v27→wb-v28。同步模型沿用 v1421。-->
@@ -213,6 +214,28 @@
   .stat.active .stat-n{color:var(--brand)}
   .stat-n{font-size:16px;font-weight:700;line-height:1.1;color:var(--ink);font-family:"Sora",sans-serif}
   .stat-l{font-size:10.5px;color:var(--ink3);margin-top:1px;white-space:nowrap}
+
+  /* v=20261010-1325 桌面顶栏收进一排：压缩品牌/等级/经验大卡，16 个快捷格等宽自适应填满同一行；
+     放不下时格子按比例微缩、文字省略号，不再折行。iPhone(<=820px) 有独立三段式样式，完全不受影响。 */
+  @media (min-width:821px){
+    .topbar{padding:10px 14px; gap:6px 10px; flex-wrap:nowrap}
+    .brand{flex:0 0 auto}
+    .brand-txt h1{font-size:16px}
+    .topbar-hero{gap:6px}
+    .hero-card{padding:5px 9px; min-height:34px; gap:7px}
+    .hero-ico{font-size:16px}
+    .hero-label{font-size:9.5px}
+    .hero-value{font-size:12.5px; margin-top:0}
+    .score-card .score-n{font-size:14px}
+    .score-card .score-l{font-size:10px}
+    .avatar-wrap{width:34px; height:42px}
+    .avatar-svg{width:26px; height:36px}
+    .avatar-lv{font-size:8px}
+    .topbar-stats{flex:1 1 auto; min-width:0; gap:4px}
+    .topbar-stats .stat{flex:1 1 0; min-width:0; padding:4px 2px; overflow:hidden}
+    .stat-n{font-size:14px}
+    .stat-l{font-size:9px; max-width:100%; overflow:hidden; text-overflow:ellipsis}
+  }
   .sync-state{font-size:11px;color:var(--ink3);padding:4px 9px;border-radius:999px;background:#fff;border:1px solid var(--line)}
   .topbar-tools{display:flex;align-items:center;gap:8px}
 
@@ -1127,7 +1150,6 @@
         <div class="logo" data-page-node-id="fqY4TuQkItZtb1CoMaSLjs">🏯</div>
         <div class="brand-txt" data-page-node-id="8Q2tkypMC6EOb9mw7IooQJ">
           <h1 data-page-node-id="krPiER1rVHnhYjM5YIwp43">军机处</h1>
-          <span class="sub" data-page-node-id="7SWtFcFifmahEg7zlTNsRE">本地优先 · 多端同步</span>
         </div>
       </div>
       <div class="avatar-wrap avatar-m" title="点击查看等级图"><span class="avatar-lv"></span></div>
