@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1520 修复「文字输入类模块 编辑/删除 要点2次、第一次自动失效」：根因=每次云端拉取（开机/每30s轮询/每次窗口获焦）都无条件 state=云端 并整页 renderAll()，重渲染若落在一次点击的 mousedown~mouseup 之间，按钮节点被重建→浏览器不派发 click→第一次操作被吞。修法：①用 canonStr（递归排序 key，兼容 Supabase jsonb 不保序）比对云端内容，与 _lastCloudJson 一致则直接跳过、不换 state 不重渲染（但保留 trashPurge/rolloverDay 轻量维护，跨天滚动行为不变）；pushState 成功后同步刷新 _lastCloudJson。②renderAll() 加「按住不放则推迟」守卫（pointerup/mouseup/touchend 松手后补渲染），从根上杜绝点击被重渲染吃掉。同步语义不变（云端权威 + 本地编辑即推送，v1421）。sw 缓存 wb-v33→wb-v34。-->
   <!-- v=20261010-1345 习惯再砍两项（用户「1和2都不要」）：①去掉「🏆养成/↩撤销达成」动作（及 doneAt 完成态、已养成标签、历史养成习惯区）——习惯恒为进行中，无完成态；②去掉「截止日期」输入与显示。连带：reorderableHabits/linkItemSelHtml/refreshLinkedSelects/editTaskFields/refreshStats 中习惯不再按 doneAt 过滤；habitStats 删除。计分无影响（习惯 doneAt 从不计入 totalScore）。sw 缓存 wb-v32→wb-v33。同步模型沿用 v1421。-->
   <!-- v=20261010-1330 习惯板块砍掉「进度设置」：习惯默认已养成、无养成进度 → 删除添加行/编辑弹窗的「进度方式(自动/手动)」与「手动进度」控件、列表里的进度条与百分比、关联怪物进度行、手动滑块监听；habitStats 去掉手动分支；相关文案改为「已经养成」。sw 缓存 wb-v31→wb-v32。同步模型沿用 v1421。-->
   <!-- v=20261010-1325 顶栏收进一排（桌面）：①删品牌下「本地优先 · 多端同步」备注行；②压缩等级/经验大卡（padding 5px 9px、字号缩小）与小人；③16 个快捷格改 flex:1 1 0 等宽自适应，与品牌/大卡同行放满，放不下按比例微缩+省略号，不再折 2 行。全部改动包在 @media(min-width:821px)，iPhone 端三段式布局不变。sw 缓存 wb-v30→wb-v31。同步模型沿用 v1421。-->
@@ -1544,6 +1545,14 @@ rolloverDay();   // 本地数据首次加载即清理历史已击败的当天怪
 
 /* ---------- 同步 ---------- */
 let _sb=null, _pushTimer=null, _pulled=false, _refreshing=false, _lastCloudJson=null, _bootAt=Date.now(), _dirty=false;
+/* v=20261010-1520 规范化 JSON（递归排序 key）：用于判断「云端内容是否真的变了」。
+   Supabase 的 jsonb 不保证对象 key 顺序，直接 JSON.stringify 比对会误判成“变了”，故先做键排序再序列化。 */
+function canon(v){
+  if(Array.isArray(v)) return v.map(canon);
+  if(v&&typeof v==="object"){ const o={}; Object.keys(v).sort().forEach(k=>{ o[k]=canon(v[k]); }); return o; }
+  return v;
+}
+function canonStr(v){ try{ return JSON.stringify(canon(v)); }catch(e){ return ""; } }
 function sbClient(){
   if(!SYNCCFG.enabled || !SYNCCFG.url || !SYNCCFG.anon || typeof supabase==="undefined") return null;
   if(!_sb){ try{ _sb=supabase.createClient(SYNCCFG.url,SYNCCFG.anon); }catch(e){ return null; } }
@@ -1558,7 +1567,7 @@ function pushState(){
   _pushTimer=setTimeout(async()=>{
     try{
       const {error}=await sb.from("workbench_state").upsert({id:SYNCCFG.board,data:state,updated_at:new Date().toISOString()});
-      if(error) throw error; setSync("已同步"); _dirty=false;
+      if(error) throw error; setSync("已同步"); _dirty=false; _lastCloudJson=canonStr(state);   /* v=20261010-1520 记录刚上云的内容，供下次轮询判断“云端未变” */
     }catch(e){ setSync("同步失败"); }
   },250);
 }
@@ -1611,6 +1620,19 @@ async function pullState(){
     /* 本地有未上云改动（已拉过云端之后）：只推本地、绝不被云端覆盖，避免刚做的编辑/跳过丢失 */
     if(_dirty && _pulled){ pushState(); setSync("已同步"); _endBoot(); return; }
     if(data&&data.data&&data.data.backlog){
+      /* v=20261010-1520 关键修复「编辑/删除要点2次」：
+         云端内容与上次所见一致时直接返回——不再用云端对象替换 state、不再整页 renderAll()。
+         （原先每 30 秒轮询 / 每次窗口获得焦点都会全量重渲染；若恰好落在一次点击的 mousedown~mouseup 之间，
+          被点的按钮节点被重建，浏览器不派发 click，第一次操作就被吞掉。） */
+      const _cloudStr=canonStr(data.data);
+      if(_pulled && !_dirty && _lastCloudJson===_cloudStr){
+        /* 云端没变：不整页重渲染（这是吃掉点击的元凶）；但仍跑必要的轻量维护，
+           保持原有「每次拉取都会跨天滚动 / 清理回收站」的行为不变。 */
+        const _t0=canonStr(state.today);
+        trashPurge(); rolloverDay();
+        if(canonStr(state.today)!==_t0) renderAll();
+        setSync("已同步"); _endBoot(); return;
+      }
       let adopted, pushMerged=false;
       if(!_pulled){
         const merged=mergeAdditions(state, data.data);
@@ -1644,7 +1666,7 @@ async function pullState(){
       (state.habits||[]).forEach(h=>{ if(!("imp" in h)) h.imp="1"; });
       normalizeActiveHabitSeq();
       if(state.activeId && !state.exec[state.activeId]) state.exec[state.activeId]={steps:[],tracking:""};
-      _pulled=true; persist(); renderAll(); setSync("已同步"); _endBoot();
+      _pulled=true; _lastCloudJson=_cloudStr; persist(); renderAll(); setSync("已同步"); _endBoot();
       if(pushMerged) pushState();   // 把离线新增推回云端
     } else { _pulled=true; setSync("已同步"); _endBoot(); }
   }catch(e){ setSync("同步失败"); }
@@ -4505,7 +4527,30 @@ document.getElementById("more-reset").addEventListener("click",e=>{
   toast("已清空全部数据","ok");
 });
 
-function renderAll(){ syncDecompBacklog(); renderBacklog(); renderToday(); renderRoutines(); renderDone(); renderExec(); renderAllNotes(); renderAllStrat(); renderAssets(); renderTrash(); renderDaily(); renderKeydays(); renderGoals(); renderHabits(); renderDecomp(); refreshStats(); }
+/* v=20261010-1520 防「点击被重渲染吃掉」：若此刻正按住鼠标/手指（mousedown~mouseup 之间），
+   推迟到松手后再渲染，避免按钮在按下与抬起之间被重建导致 click 不触发（表现为“要点2次”）。 */
+let _pressing=false, _pendingRender=false, _renderRetryTimer=null;
+function _flushPendingRender(){
+  if(_pendingRender){ _pendingRender=false; renderAllNow(); }
+}
+function renderAll(){
+  if(_pressing){
+    _pendingRender=true;
+    /* 兜底：万一松手事件没收着（指针移出窗口），且不在拖动排序中，1.2s 后强制补渲染 */
+    clearTimeout(_renderRetryTimer);
+    _renderRetryTimer=setTimeout(()=>{ if(_pendingRender && !document.body.classList.contains("is-dragging")){ _pressing=false; _flushPendingRender(); } }, 1200);
+    return;
+  }
+  renderAllNow();
+}
+function renderAllNow(){ syncDecompBacklog(); renderBacklog(); renderToday(); renderRoutines(); renderDone(); renderExec(); renderAllNotes(); renderAllStrat(); renderAssets(); renderTrash(); renderDaily(); renderKeydays(); renderGoals(); renderHabits(); renderDecomp(); refreshStats(); }
+document.addEventListener("pointerdown", ()=>{ _pressing=true; }, true);
+document.addEventListener("pointerup", ()=>{ _pressing=false; _flushPendingRender(); }, true);
+document.addEventListener("pointercancel", ()=>{ _pressing=false; _flushPendingRender(); }, true);
+document.addEventListener("mousedown", ()=>{ _pressing=true; }, true);
+document.addEventListener("mouseup", ()=>{ _pressing=false; _flushPendingRender(); }, true);
+document.addEventListener("touchstart", ()=>{ _pressing=true; }, true);
+document.addEventListener("touchend", ()=>{ _pressing=false; _flushPendingRender(); }, true);
 if(trashPurge()) save();   // 启动时清理到期的回收站条目
 (state.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });   // 目标 v3：老目标补 imp 系数（默认关键×1.5）
 normalizeActiveSeq();  // 目标序号：可见列表压缩为连续 1..k（无断号）
