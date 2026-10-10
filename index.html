@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1035 修复目标分解：动作击败后下一个动作误出现在当日表且已击败（syncDecompBacklog/renderDecomp 把已击败的分解怪物仍当激活怪物，导致下一个动作就地改名卡在当日表）；改为只认未击败(!t.done)的分解怪物为激活项，击败后下一动作回到可选怪物区由用户手动入当日；sw 缓存 wb-v24→wb-v25。同步模型沿用 v1421。-->
   <!-- v=20261010-0950 修复备忘录/灵感记录后消失：mergeAdditions 首拉漏合并 notes(备忘录/今日成长/商务) 与 strat(灵感/愿景/战略)，现已并入，避免开机首拉覆盖本地新增；sw 缓存 wb-v23→wb-v24。同步模型沿用 v1421。-->
   <!-- v=20261010-0908 导航栏调整：顶部快捷区取消「每日」「完成」，换成「习惯」「愿景」（点击跳转对应模块，内在功能不变）；refreshStats 改为计数守卫（st-done 不再硬取），新增 st-habit/st-vision 计数；sw 缓存 wb-v22→wb-v23。同步模型沿用 v1421。-->
   <!-- v=20261009-1645 目标分解面板改版：由「横向动作行」改为「目录/子目录折叠树」——每个分解目标是一个可折叠目录节点，动作作为子目录条目前挂，点击目标头展开/折叠；目标分解区可同时容纳多个待分解目标；动作增删/Enter 新增/最靠前动作自动进怪物表逻辑不变。同步模型沿用 v1421。-->
@@ -2730,7 +2731,7 @@ document.getElementById("list-decomp").addEventListener("input",e=>{
   a.text=inp.value;
   const front=(g.decompActions.filter(x=>!x.doneAt).sort((x,y)=>x.seq-y.seq))[0];
   if(front && front.seq===a.seq){
-    const m=state.backlog.find(t=>t.decompSeq && t.goalId===g.id) || state.today.find(t=>t.decompSeq && t.goalId===g.id);
+    const m=state.backlog.find(t=>t.decompSeq && t.goalId===g.id && !t.done) || state.today.find(t=>t.decompSeq && t.goalId===g.id && !t.done);
     if(m) m.title=a.text;
   }
   save();
@@ -2755,7 +2756,10 @@ document.getElementById("list-goal").addEventListener("input",e=>{
 /* ---------- 目标分解：分解怪物管理 + 面板渲染 + 动作增删 ---------- */
 function syncDecompBacklog(){
   if(!state.goals) return;
-  const activeFor = g => state.backlog.find(t=>t.decompSeq && t.goalId===g.id) || state.today.find(t=>t.decompSeq && t.goalId===g.id);
+  /* 只认「未击败」的分解怪物为当前激活怪物：今日表中已击败(done=true)不再计入，
+     避免击败后把下一个动作就地改名并卡在当日表（正确行为：击败后下一动作回到可选怪物区，由用户手动决定是否入当日） */
+  const activeFor = g => state.backlog.find(t=>t.decompSeq && t.goalId===g.id && !t.done)
+                     || state.today.find(t=>t.decompSeq && t.goalId===g.id && !t.done);
   (state.goals||[]).forEach(g=>{
     const acts=(g.decompActions||[]).filter(a=>!a.doneAt).sort((a,b)=>a.seq-b.seq);
     const f=acts[0];
