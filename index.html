@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1650 目标分解新增「每个动作可回退」：已完成动作后加「↩ 回退」按钮，一键把它退回未完成——复位 decompActions[].doneAt、撤销那次击败的记录（当日表划线项去标记 / 已滚入历史的从 state.done 移除）并扣回对应得分（与「已击败」区「恢复」语义一致）；回退后若该动作成为最靠前未完成动作，syncDecompBacklog 会自动重新为它生成怪物进入可选怪物区。另：击败时往 done 记录补存 decompSeq，供回退时精确找回对应记录（老数据无此字段按 目标+标题 兜底）。sw 缓存 wb-v35→wb-v36。同步模型沿用 v1421。-->
   <!-- v=20261010-1610 数字资产编辑面板重排 + 新增「资产收益情况」：①修丑根因——.asset-edit 原本不是 flex/grid，select 与 textarea 作为 inline 元素被挤到同一行、按钮又套在 .add-row 里继承了紫色渐变大按钮样式；改为「标签在上、控件在下」的表单栅格：资产名称整行 → 类型(128px)+收益一行两列 → 情况说明整行 → 底部操作行（删除=左侧安静文字键、取消/保存=右侧等高32px低饱和按钮）。②新增收益情况字段，label 与 placeholder 随类型联动：广告=月收入/年收入、收益账号=月收入、涨粉账号=累积粉丝、其它=收益情况；数据存 asset.income（老数据无此字段自动兼容），查看态以紫色小徽标展示。sw 缓存 wb-v34→wb-v35。同步模型沿用 v1421。-->
   <!-- v=20261010-1520 修复「文字输入类模块 编辑/删除 要点2次、第一次自动失效」：根因=每次云端拉取（开机/每30s轮询/每次窗口获焦）都无条件 state=云端 并整页 renderAll()，重渲染若落在一次点击的 mousedown~mouseup 之间，按钮节点被重建→浏览器不派发 click→第一次操作被吞。修法：①用 canonStr（递归排序 key，兼容 Supabase jsonb 不保序）比对云端内容，与 _lastCloudJson 一致则直接跳过、不换 state 不重渲染（但保留 trashPurge/rolloverDay 轻量维护，跨天滚动行为不变）；pushState 成功后同步刷新 _lastCloudJson。②renderAll() 加「按住不放则推迟」守卫（pointerup/mouseup/touchend 松手后补渲染），从根上杜绝点击被重渲染吃掉。同步语义不变（云端权威 + 本地编辑即推送，v1421）。sw 缓存 wb-v33→wb-v34。-->
   <!-- v=20261010-1345 习惯再砍两项（用户「1和2都不要」）：①去掉「🏆养成/↩撤销达成」动作（及 doneAt 完成态、已养成标签、历史养成习惯区）——习惯恒为进行中，无完成态；②去掉「截止日期」输入与显示。连带：reorderableHabits/linkItemSelHtml/refreshLinkedSelects/editTaskFields/refreshStats 中习惯不再按 doneAt 过滤；habitStats 删除。计分无影响（习惯 doneAt 从不计入 totalScore）。sw 缓存 wb-v32→wb-v33。同步模型沿用 v1421。-->
@@ -363,6 +364,11 @@
   .daction .dact-text{flex:1 1 auto;min-width:80px;border:1px solid var(--line2);border-radius:8px;padding:5px 8px;font-size:13px;background:#fff}
   .daction.done .dact-text{text-decoration:line-through;color:var(--ink3)}
   .daction .dact-del{flex:0 0 auto;padding:2px 9px;font-size:13px;line-height:1.4}
+  /* v=20261010-1650：已完成标签 + 「↩ 回退」按钮（每个动作都可回退到未完成） */
+  .daction .dtag{flex:0 0 auto;white-space:nowrap;font-size:11px;font-weight:600;color:var(--n);background:var(--n-bg);border:1px solid #cdeee8;border-radius:999px;padding:2px 9px}
+  .daction .dact-undo{flex:0 0 auto;white-space:nowrap;background:#fff;border:1px solid var(--line);color:var(--ink2);font-size:11.5px;font-weight:600;font-family:inherit;padding:3px 9px;border-radius:9px;cursor:pointer;transition:.15s}
+  .daction .dact-undo:hover{border-color:var(--brand);color:var(--brand)}
+  .daction .dact-undo:active{transform:scale(.97)}
   .decomp-actions{display:block;margin-top:2px}
   .front-hint{color:var(--brand);font-weight:600}
   .decomp-goal{border:1px solid var(--line2);border-radius:12px;margin:6px 0;background:#fff;overflow:hidden}
@@ -2900,6 +2906,8 @@ document.getElementById("list-goal").addEventListener("click",e=>{
 document.getElementById("list-decomp").addEventListener("click",e=>{
   const addBtn=e.target.closest('button[data-act="dAddAct"]');
   if(addBtn){ const g=goalById(addBtn.dataset.id); if(g) addDecompAction(g); return; }
+  const revBtn=e.target.closest('button[data-act="dRevert"]');       /* v=20261010-1650 单个动作回退 */
+  if(revBtn){ const g=goalById(revBtn.dataset.gid); if(g) revertDecompAction(g, parseInt(revBtn.dataset.seq,10)); return; }
   const delBtn=e.target.closest("button.dact-del");
   if(delBtn){ const g=goalById(delBtn.dataset.gid); if(g) delDecompAction(g, parseInt(delBtn.dataset.seq,10)); return; }
   const b=e.target.closest("button[data-act]");
@@ -3007,7 +3015,7 @@ function renderDecomp(){
       return `<div class="daction ${a.doneAt?'done':''} ${isFront?'front':''}" data-seq="${a.seq}">
         <span class="dact-seq">${a.seq}</span>
         <input class="dact-text" data-gid="${g.id}" data-seq="${a.seq}" value="${esc(a.text||'')}" placeholder="动作内容…" ${a.doneAt?'disabled':''}>
-        ${a.doneAt?'<span class="dtag">✓ 已完成</span>':'<button class="dact-del icon-btn" data-gid="'+g.id+'" data-seq="'+a.seq+'">×</button>'}
+        ${a.doneAt?`<span class="dtag">✓ 已完成</span><button class="dact-undo" data-act="dRevert" data-gid="${g.id}" data-seq="${a.seq}" title="回退到未完成（撤销这次击败与得分）">↩ 回退</button>`:`<button class="dact-del icon-btn" data-gid="${g.id}" data-seq="${a.seq}">×</button>`}
       </div>`;
     }).join("");
     const frontHint = g.doneAt ? '' : (front ? `<span class="gmeta front-hint">▶ 当前怪物：${esc(front.text||('动作'+front.seq))}（已在可选怪物表）</span>` : `<span class="gmeta">所有动作已完成 🎉</span>`);
@@ -3046,6 +3054,35 @@ function delDecompAction(g, seq){
   if(!g.decompActions) return;
   g.decompActions=g.decompActions.filter(a=>a.seq!==seq);
   save(); renderDecomp(); syncDecompBacklog(); renderBacklog();
+}
+/* v=20261010-1650 目标分解：单个动作「回退到未完成」——撤销这次击败的记录与得分，
+   动作复位后若成为最靠前未完成动作，由 syncDecompBacklog 重新生成对应怪物进入可选怪物区。 */
+function revertDecompAction(g, seq){
+  const a=(g.decompActions||[]).find(x=>x.seq===seq); if(!a) return;
+  if(!a.doneAt){ toast("该动作尚未完成，无需回退","warn"); return; }
+  const nm=(a.text||"").slice(0,20)||("动作 "+seq);
+  if(!confirm("回退「"+nm+"」到未完成？\n将同时撤销这次击败的记录与得分。")) return;
+  let refund=0;
+  const inToday=(state.today||[]).find(t=>t.decompSeq===seq && t.goalId===g.id && t.done);
+  if(inToday){
+    /* 怪物还在当日表（今天击败、尚未跨天清理）：去标记，让它重新变成进行中 */
+    inToday.done=false; inToday.doneDate=null;
+    delete inToday.deferDate; delete inToday.cycleDefer;
+    const d=state.done.find(x=>x.id===inToday.id);
+    if(d){ refund=d.pts||0; state.done=state.done.filter(x=>x.id!==inToday.id); }
+  } else {
+    /* 已跨天滚入历史：先按 decompSeq 精确找回（新数据），再按 目标+标题 兜底（老数据没存 decompSeq） */
+    let idx=state.done.findIndex(d=>d.goalId===g.id && d.decompSeq===seq);
+    if(idx<0){
+      const title=a.text||("动作"+seq);
+      idx=state.done.findIndex(d=>d.goalId===g.id && d.decompSeq===undefined && (d.title||"")===title);
+    }
+    if(idx>=0){ refund=state.done[idx].pts||0; state.done.splice(idx,1); }
+  }
+  a.doneAt=null;                       /* 动作回到未完成 */
+  decompOpen[g.id]=true;
+  save(); renderDecomp(); syncDecompBacklog(); renderBacklog(); renderToday(); renderDone(); renderGoals(); refreshStats();
+  toast(refund?("已回退到未完成，扣回 "+refund+" 分"):"已回退到未完成","ok");
 }
 /* ---------- 习惯（从目标分拆；关联怪物计分逻辑与目标完全一致） ---------- */
 function renderHabits(){
@@ -3908,7 +3945,7 @@ function completeTask(id){
     toast("击败","ok"); return;
   }
   const ex=state.exec[id]||{steps:[],tracking:""};
-  const doneItem={id:t.id,title:t.title,diff:t.diff,fromBack:t.fromBack,goalId:t.goalId,doneAt:Date.now(),steps:ex.steps||[],tracking:ex.tracking||""};
+  const doneItem={id:t.id,title:t.title,diff:t.diff,fromBack:t.fromBack,goalId:t.goalId,decompSeq:t.decompSeq||undefined,doneAt:Date.now(),steps:ex.steps||[],tracking:ex.tracking||""};   /* v=20261010-1650 记下来自哪个分解动作，供「回退」精确找回 */
   state.done.unshift(doneItem);
   state.done[0].pts=donePoints(state.done[0]);
   delete state.exec[id];              // 完成即退出执行区
