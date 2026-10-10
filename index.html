@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1105 战略模块新增「数字资产」板块（今日成长之下）：记录能持续带来收益的非实物资产，每条含 名称+类型(广告/收益账号/涨粉账号/其它)+情况说明，支持增删改；数据存顶层 state.assets 数组，已并入 load/首拉/导入迁移与首拉 mergeAdditions 防丢。sw 缓存 wb-v26→wb-v27。同步模型沿用 v1421。-->
   <!-- v=20261010-1047 修复目标分解「恢复(撤销击败)无法逆操作」：重写 syncDecompBacklog 为稳健对账——每个分解目标只保留最靠前未完成动作对应的一个激活怪物，删除残留/重复怪物；恢复分支在链接被旧版 bug 篡改时兜底复位该目标下唯一仍标记完成的动作；击败分支按 seq 精确匹配。连带修掉恢复后残留重复怪物。sw 缓存 wb-v25→wb-v26。同步模型沿用 v1421。-->
   <!-- v=20261010-1035 修复目标分解：动作击败后下一个动作误出现在当日表且已击败（syncDecompBacklog/renderDecomp 把已击败的分解怪物仍当激活怪物，导致下一个动作就地改名卡在当日表）；改为只认未击败(!t.done)的分解怪物为激活项，击败后下一动作回到可选怪物区由用户手动入当日；sw 缓存 wb-v24→wb-v25。同步模型沿用 v1421。-->
   <!-- v=20261010-0950 修复备忘录/灵感记录后消失：mergeAdditions 首拉漏合并 notes(备忘录/今日成长/商务) 与 strat(灵感/愿景/战略)，现已并入，避免开机首拉覆盖本地新增；sw 缓存 wb-v23→wb-v24。同步模型沿用 v1421。-->
@@ -356,6 +357,16 @@
   .strat-view .note-meta{margin-right:2px;white-space:nowrap}
   .strat-edit-body{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-family:inherit;resize:vertical;margin-bottom:6px;box-sizing:border-box}
   .strat-edit-body:focus{outline:none;border-color:var(--brand)}
+  /* ===== 数字资产（战略模块）：名称 + 类型徽标 + 情况说明 ===== */
+  .asset-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .asset-name{font-size:13.5px;font-weight:600;color:var(--ink)}
+  .asset-badge{font-size:11px;font-weight:600;color:#6d28d9;background:#f5f3ff;border:1px solid #e9e4ff;border-radius:999px;padding:1px 8px}
+  .asset-desc{font-size:12.5px;line-height:1.7;color:var(--ink3);margin-top:5px;white-space:pre-wrap;word-break:break-word}
+  .asset-edit-name{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-family:inherit;box-sizing:border-box;margin-bottom:6px}
+  .asset-edit-type{flex:0 0 auto;margin-bottom:6px}
+  .asset-edit-name:focus{outline:none;border-color:var(--brand)}
+  .asset-add-desc{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-family:inherit;resize:vertical;margin-top:6px;box-sizing:border-box}
+  .asset-add-desc:focus{outline:none;border-color:var(--brand)}
 
   .reset-link{
     font-size:12px;color:var(--ink3);background:#fff;border:1px solid var(--line);
@@ -1178,6 +1189,7 @@
         </button>
         <div class="mod-group-body" data-page-node-id="MXdRPTNBxcB6uA9uh1dKrT">
           <button class="mod-tab" data-mod="note-daily" data-sort-key="strat" data-page-node-id="24jo63drG2UDHV2VDT0ONG"><span class="t-ico" data-page-node-id="QHBXmc0KD7XO0asPASJ8Lk">🌟</span><span class="t-name" data-page-node-id="7jek9kZYNBIByF97kNIaxo">今日成长</span><span class="t-cnt" id="cnt-note-daily" data-page-node-id="weobsAPi8ErxdwfYJxWoEr">0</span></button>
+          <button class="mod-tab" data-mod="asset" data-sort-key="strat" data-page-node-id="asset-nav-1"><span class="t-ico" data-page-node-id="asset-nav-2">💎</span><span class="t-name" data-page-node-id="asset-nav-3">数字资产<span class="t-hint" data-page-node-id="asset-nav-4">持续带来收益的非实物资产</span></span><span class="t-cnt" id="cnt-asset" data-page-node-id="asset-nav-5">0</span></button>
           <button class="mod-tab" data-mod="vision" data-sort-key="strat" data-page-node-id="fR7JJCJgiD6vGqBJzCOTqp"><span class="t-ico" data-page-node-id="D6OqCSBmyYudlssvLjavF2">🎯</span><span class="t-name" data-page-node-id="fECgAeZeKDPlHFFJ5lfG1E">愿景<span class="t-hint" data-page-node-id="pTO7X49gCzT1ZNsvMRm7WG">北极星方向</span></span><span class="t-cnt" id="cnt-vision" data-page-node-id="qt3avJz5dwE8nsuq99jle2">0</span></button>
           <button class="mod-tab" data-mod="strategy" data-sort-key="strat" data-page-node-id="bHtkipIEKdJ76Fbu1BNxnD"><span class="t-ico" data-page-node-id="4ZabzKwXe51DutCVy7XYGW">♟️</span><span class="t-name" data-page-node-id="2apeZ8RqYHzB4wNiwF2yNj">战略<span class="t-hint" data-page-node-id="ZyToE1uvHupSHgBWERTs5J">打法原则</span></span><span class="t-cnt" id="cnt-strategy" data-page-node-id="lZCpC87C6zFRVQs27pxQLT">0</span></button>
           <button class="mod-tab" data-mod="idea" data-sort-key="strat" data-page-node-id="XSavq2ub8JVSg2B5aJ3k0h"><span class="t-ico" data-page-node-id="vMPjLNIGAtqWuGRXNulTdJ">💡</span><span class="t-name" data-page-node-id="7jBhDHM2qy3ArAXbmafhmd">灵感<span class="t-hint" data-page-node-id="FbmfFjPkC62r60Lg1mLFHj">随手捕捉</span></span><span class="t-cnt" id="cnt-idea" data-page-node-id="az4AnzU4WerfHZugghEUe2">0</span></button>
@@ -1242,6 +1254,20 @@
           <div class="add-row" style="margin-top:8px;justify-content:flex-end" data-page-node-id="NJf26oBI9RycmzPIINoOPa">
             <button class="btn-primary act-note-add" data-mod="daily" data-page-node-id="N5FmcCGEP1BcI5cz3VQZI5">记录成长</button>
           </div>
+        </div>
+      </section>
+      <!-- 数字资产：能够持续带来收益的非实物资产（广告 / 收益账号 / 涨粉账号 / 其它） -->
+      <section class="panel" id="p-asset" data-page-node-id="asset-p-1">
+        <div class="p-head" data-page-node-id="asset-p-2"><span class="pmod" data-page-node-id="asset-p-3">💎</span><h2 data-page-node-id="asset-p-4">数字资产</h2><span class="hint" data-page-node-id="asset-p-5">持续带来收益的非实物资产</span><span class="collapse-ind" aria-hidden="true" data-page-node-id="asset-p-6"><svg viewBox="0 0 16 16" data-page-node-id="asset-p-7"><path d="M3.5 6.2l4.5 4.5 4.5-4.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="asset-p-8"/></svg></span></div>
+        <div class="p-body" data-page-node-id="asset-p-9"><div class="list" id="list-asset" data-page-node-id="asset-p-10"></div></div>
+        <div class="p-foot" data-page-node-id="asset-p-11">
+          <div class="add-row" data-page-node-id="asset-p-12">
+            <input id="in-asset-name" placeholder="资产名称，如：抖音·制造业情报号" style="flex:1 1 auto; min-width:120px" data-page-node-id="asset-p-13">
+            <select id="sel-asset-type" title="资产类型" data-page-node-id="asset-p-14"><option value="ad" data-page-node-id="asset-p-14a">广告</option><option value="rev" data-page-node-id="asset-p-14b">收益账号</option><option value="fan" data-page-node-id="asset-p-14c">涨粉账号</option><option value="other" data-page-node-id="asset-p-14d">其它</option></select>
+            <button class="btn-primary act-asset-add" data-page-node-id="asset-p-15">添加</button>
+          </div>
+          <textarea id="in-asset-desc" class="asset-add-desc" placeholder="说明它怎么持续带来收益 / 目前情况，如：月均带来 2 个咨询订单" rows="2" data-page-node-id="asset-p-16"></textarea>
+          <div class="hint" style="font-size:11.5px; margin-top:6px" data-page-node-id="asset-p-17">数字资产 = 能持续带来收益的非实物资产，例如：一条能带来咨询订单的广告、一个能产生收益的账号、一个能持续涨粉的账号。</div>
         </div>
       </section>
       <!-- 愿景 -->
@@ -1507,7 +1533,7 @@ function isEditing(){
 /* 首拉取时：把本地离线新增（云端没有的条目 id）并入云端，避免离线编辑丢失；已有条目以云端为准 */
 function mergeAdditions(local, cloud){
   const out = JSON.parse(JSON.stringify(cloud||{}));
-  ["backlog","today","done","routines","goals","keydays","trash"].forEach(k=>{
+  ["backlog","today","done","routines","goals","keydays","trash","assets"].forEach(k=>{
     const l=(local&&local[k])||[], c=(out[k]=out[k]||[]);
     const ids=new Set((c||[]).map(x=>x&&x.id));
     (l||[]).forEach(x=>{ if(x&&x.id!=null && !ids.has(x.id)) c.push(x); });
@@ -1567,6 +1593,7 @@ async function pullState(){
       _migLinked(state.backlog); _migLinked(state.today); _migLinked(state.routines);
       (state.done||[]).forEach(d=>{ if(d && d.habitId!==undefined){ if(d.goalId===undefined) d.goalId=d.habitId; delete d.habitId; } });
       state.strat=state.strat||{vision:[],strategy:[],idea:[]};
+      state.assets=state.assets||[];
       (state.goals||[]).forEach(g=>{ if(g.doneAt && g.type===SPECIAL && !(state.done||[]).some(d=>d.promo && d.goalId===g.id)){ (state.done=state.done||[]).push({id:g.id+"_promo", title:g.name, diff:SPECIAL, promo:true, goalId:g.id, doneAt:g.doneAt}); } });
       dedupePromos(state);
       cleanupRoutinesInToday(state);
@@ -1614,6 +1641,7 @@ function importData(file){
       if(!incoming || typeof incoming!=="object" || !Array.isArray(incoming.backlog)) throw new Error("文件格式不正确");
       state = incoming;
       state.strat = state.strat||{vision:[],strategy:[],idea:[]};
+      state.assets = state.assets||[];
       state.goals = state.goals||[];
       state.habits = state.habits||[];
       /* v20261007 合并关联字段（导入备份同样迁移） */
@@ -1665,6 +1693,7 @@ function load(){
       s.routines=s.routines||[];
       s.goals=s.goals||[];
       s.strat=s.strat||{vision:[],strategy:[],idea:[]};
+      s.assets=s.assets||[];
     (s.goals||[]).forEach(g=>{ if(g.doneAt && g.type===SPECIAL && !(s.done||[]).some(d=>d.promo && d.goalId===g.id)){ (s.done=s.done||[]).push({id:g.id+"_promo", title:g.name, diff:SPECIAL, promo:true, goalId:g.id, doneAt:g.doneAt}); } });
       dedupePromos(s);
       cleanupRoutinesInToday(s);       // 清理 today 中跟每日怪物重复的记录
@@ -1681,7 +1710,7 @@ function load(){
       return s;
     }
   }catch(e){}
-  return { backlog:[], today:[], done:[], activeId:null, exec:{}, notes:{}, trash:[], trashKeep:30, routines:[], goals:[], habits:[], strat:{vision:[],strategy:[],idea:[]}, keydays:[], keydaysPinned:null };
+  return { backlog:[], today:[], done:[], activeId:null, exec:{}, notes:{}, trash:[], trashKeep:30, routines:[], goals:[], habits:[], strat:{vision:[],strategy:[],idea:[]}, assets:[], keydays:[], keydaysPinned:null };
 }
 function persist(){ localStorage.setItem(KEY, JSON.stringify(state)); }
 function save(){ persist(); _dirty=true; pushState(); }
@@ -1998,6 +2027,69 @@ function stratSave(id,nid){
   toast("已保存","ok");
 }
 
+/* ===== 数字资产：能持续带来收益的非实物资产（广告 / 收益账号 / 涨粉账号 / 其它） ===== */
+const ASSET_TYPES=[{v:"ad",k:"广告"},{v:"rev",k:"收益账号"},{v:"fan",k:"涨粉账号"},{v:"other",k:"其它"}];
+function assetTypeLabel(v){ const t=ASSET_TYPES.find(x=>x.v===String(v||"other")); return t?t.k:"其它"; }
+const getAssets = () => (state.assets||[]);
+function renderAssets(){
+  const el=document.getElementById("list-asset"); if(!el) return;
+  const arr=[...getAssets()];
+  const c=document.getElementById("cnt-asset"); if(c) c.textContent=arr.length;
+  if(!arr.length){ el.innerHTML=`<div class="empty">还没有数字资产，下面添加一条：如「抖音·制造业情报号」</div>`; return; }
+  el.innerHTML=arr.map(it=>{
+    const descHtml=(it.desc?`<div class="asset-desc">${esc(it.desc)}</div>`:"");
+    return `<div class="strat-item" data-id="${it.id}">
+      <div class="asset-view">
+        <div class="asset-title-row"><b class="asset-name">${esc(it.name||"(未命名)")}</b><span class="asset-badge">${esc(assetTypeLabel(it.type))}</span><button class="icon-btn" data-act="assetEdit" data-id="${it.id}">编辑</button></div>
+        ${descHtml}
+      </div>
+      <div class="asset-edit" style="display:none">
+        <input class="asset-edit-name" value="${esc(it.name||"")}" placeholder="资产名称">
+        <select class="asset-edit-type">${ASSET_TYPES.map(o=>`<option value="${o.v}"${String(it.type||"other")===o.v?" selected":""}>${o.k}</option>`).join("")}</select>
+        <textarea class="asset-edit-body" rows="2" placeholder="说明它怎么持续带来收益 / 目前情况">${esc(it.desc||"")}</textarea>
+        <div class="add-row" style="justify-content:flex-end">
+          <button class="icon-btn danger" data-act="assetDel" data-id="${it.id}" style="margin-right:auto">删除</button>
+          <button class="btn" data-act="assetCancel" data-id="${it.id}">取消</button>
+          <button class="btn-primary" data-act="assetSave" data-id="${it.id}">保存</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+function addAsset(){
+  const nI=document.getElementById("in-asset-name");
+  const tI=document.getElementById("sel-asset-type");
+  const dI=document.getElementById("in-asset-desc");
+  const name=(nI?nI.value:"").trim();
+  if(!name){ shakeEl(nI); toast("请输入资产名称","warn"); if(nI)nI.focus(); return; }
+  if(!Array.isArray(state.assets)) state.assets=[];
+  state.assets.push({id:uid(), name, type:(tI?tI.value:"other"), desc:(dI?dI.value:"").trim(), createdAt:Date.now()});
+  if(nI)nI.value=""; if(dI)dI.value="";
+  save(); renderAssets(); toast("已添加","ok");
+}
+function assetEdit(id){
+  const root=document.querySelector('#list-asset .strat-item[data-id="'+id+'"]'); if(!root) return;
+  const v=root.querySelector('.asset-view'), e=root.querySelector('.asset-edit');
+  if(v) v.style.display="none";
+  if(e) e.style.display="block";
+}
+function assetCancel(id){ renderAssets(); }
+function assetSave(id){
+  const root=document.querySelector('#list-asset .strat-item[data-id="'+id+'"]'); if(!root) return;
+  const it=getAssets().find(x=>x.id===id); if(!it) return;
+  const nEl=root.querySelector('.asset-edit-name');
+  const nm=(nEl?nEl.value:"").trim();
+  if(!nm){ toast("资产名称不能为空","warn"); if(nEl)nEl.focus(); return; }
+  it.name=nm;
+  const tp=root.querySelector('.asset-edit-type'); if(tp) it.type=tp.value;
+  const ds=root.querySelector('.asset-edit-body'); if(ds) it.desc=(ds.value||"").trim();
+  save(); renderAssets(); toast("已保存","ok");
+}
+function assetDel(id){
+  if(!confirm("删除这个数字资产？")) return;
+  state.assets=getAssets().filter(x=>x.id!==id);
+  save(); renderAssets(); toast("已删除","ok");
+}
 /* 摇晃动画：给空内容时的视觉反馈 */
 const SHAKE_CSS = `@keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .shake-it{animation:shakeX .4s ease; border-color:#ef4444 !important; box-shadow:0 0 0 3px rgba(239,68,68,.18) !important}`;
@@ -4381,6 +4473,17 @@ document.querySelector(".stage").addEventListener("click", e=>{
   if(sCancel){ stratCancel(sCancel.dataset.mod, sCancel.dataset.id); return; }
   const sDel=e.target.closest('[data-act="stratDel"]');
   if(sDel){ stratDel(sDel.dataset.mod, sDel.dataset.id); return; }
+  /* 数字资产：添加 / 编辑 / 保存 / 取消 / 删除 */
+  const aAdd=e.target.closest(".act-asset-add");
+  if(aAdd){ addAsset(); return; }
+  const aEdit=e.target.closest('[data-act="assetEdit"]');
+  if(aEdit){ assetEdit(aEdit.dataset.id); return; }
+  const aSave=e.target.closest('[data-act="assetSave"]');
+  if(aSave){ assetSave(aSave.dataset.id); return; }
+  const aCancel=e.target.closest('[data-act="assetCancel"]');
+  if(aCancel){ assetCancel(aCancel.dataset.id); return; }
+  const aDel=e.target.closest('[data-act="assetDel"]');
+  if(aDel){ assetDel(aDel.dataset.id); return; }
   /* 今日成长：日期徽章菜单 / 编辑 / 保存 / 取消 / 删除 / 历史折叠 */
   const dMenu=e.target.closest('[data-act="dailyMenu"]');
   if(dMenu){ dailyMenu(dMenu.dataset.mod, dMenu.dataset.id); return; }
@@ -4446,7 +4549,7 @@ document.getElementById("more-reset").addEventListener("click",e=>{
   toast("已清空全部数据","ok");
 });
 
-function renderAll(){ syncDecompBacklog(); renderBacklog(); renderToday(); renderRoutines(); renderDone(); renderExec(); renderAllNotes(); renderAllStrat(); renderTrash(); renderDaily(); renderKeydays(); renderGoals(); renderHabits(); renderDecomp(); refreshStats(); }
+function renderAll(){ syncDecompBacklog(); renderBacklog(); renderToday(); renderRoutines(); renderDone(); renderExec(); renderAllNotes(); renderAllStrat(); renderAssets(); renderTrash(); renderDaily(); renderKeydays(); renderGoals(); renderHabits(); renderDecomp(); refreshStats(); }
 if(trashPurge()) save();   // 启动时清理到期的回收站条目
 (state.goals||[]).forEach(g=>{ if(!("imp" in g)) g.imp="1"; });   // 目标 v3：老目标补 imp 系数（默认关键×1.5）
 normalizeActiveSeq();  // 目标序号：可见列表压缩为连续 1..k（无断号）
