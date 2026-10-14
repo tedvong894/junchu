@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1740 手机极简模式（用户：「关联习惯关联任务都不要，已坚持天数也不要，手机要极简模式；主要任务操作在 mac，手机只是查看」）：进阶区（可选/当天/每日/已击败）怪物行在手机上只渲染「编辑/删除」，其余一律不输出——关联标签/关联下拉、已坚持·连续天数、累计完成、起止日期、进行中/未开始/已结束、截止时间、递延、时间戳、得分、步骤、加入今天、✓击败/失败、↩恢复、多日按钮、「操作」下拉全部去掉；当天表里的每日怪物行同样只给 编辑/删除。做法由 v1700 的「CSS 隐藏」升级为「渲染期不输出」——DOM 里没有这些节点，不受级联/特异性/缓存影响。Mac/iPad 零影响：IS_PHONE 只在「触屏+窄屏+非 iPad」为真，Mac 窗口拉窄也保持完整功能。sw 缓存 wb-v37→wb-v38。同步模型沿用 v1421。-->
   <!-- v=20261010-1700 手机端（仅手机，iPad/Mac 不变）进阶区怪物行极简排版：可选怪物表/当天怪物表/每日怪物/已击败怪物区四张表，每行只留「难度徽标+标题+按钮」，取消 关联、连续N天、累计完成、起止日期、进行中/未开始/已结束、截止时间、递延、时间戳、得分、步骤 等所有字段内容；每行主操作（加入今天/✓击败/失败/↩恢复）保留，去掉手机端就没法干活。当天怪物表的「操作」下拉+多日按钮在手机上换成一排直选按钮（✓击败/失败/编辑/删除）。iPad 靠 body.is-ipad 排除（其竖屏宽度≤820 会落进本 media），Mac>820 本就不进 media，两端零影响。sw 缓存 wb-v36→wb-v37。同步模型沿用 v1421。-->
   <!-- v=20261010-1650 目标分解新增「每个动作可回退」：已完成动作后加「↩ 回退」按钮，一键把它退回未完成——复位 decompActions[].doneAt、撤销那次击败的记录（当日表划线项去标记 / 已滚入历史的从 state.done 移除）并扣回对应得分（与「已击败」区「恢复」语义一致）；回退后若该动作成为最靠前未完成动作，syncDecompBacklog 会自动重新为它生成怪物进入可选怪物区。另：击败时往 done 记录补存 decompSeq，供回退时精确找回对应记录（老数据无此字段按 目标+标题 兜底）。sw 缓存 wb-v35→wb-v36。同步模型沿用 v1421。-->
   <!-- v=20261010-1610 数字资产编辑面板重排 + 新增「资产收益情况」：①修丑根因——.asset-edit 原本不是 flex/grid，select 与 textarea 作为 inline 元素被挤到同一行、按钮又套在 .add-row 里继承了紫色渐变大按钮样式；改为「标签在上、控件在下」的表单栅格：资产名称整行 → 类型(128px)+收益一行两列 → 情况说明整行 → 底部操作行（删除=左侧安静文字键、取消/保存=右侧等高32px低饱和按钮）。②新增收益情况字段，label 与 placeholder 随类型联动：广告=月收入/年收入、收益账号=月收入、涨粉账号=累积粉丝、其它=收益情况；数据存 asset.income（老数据无此字段自动兼容），查看态以紫色小徽标展示。sw 缓存 wb-v34→wb-v35。同步模型沿用 v1421。-->
@@ -689,34 +690,6 @@
     }
   }
 
-  /* ===== v=20261010-1700 手机端（仅手机；iPad / Mac 不变）进阶区怪物行极简排版 =====
-     可选怪物表 / 当天怪物表 / 每日怪物 / 已击败怪物区：每行只留「难度徽标 + 标题 + 按钮」，
-     取消 关联、连续 N 天、累计完成 N 次、起止日期、进行中/未开始/已结束、截止时间、
-     递延、时间戳、得分、步骤 等所有字段内容。按钮不动（主操作保留）。 */
-  .acts-phone{display:none}   /* 手机专用按钮组：桌面 / iPad 一律不显示 */
-  @media (max-width:820px){
-    /* 只砍“字段内容” */
-    body:not(.is-ipad) #p-backlog  .item.compact .link-item-sel,
-    body:not(.is-ipad) #p-backlog  .item.compact .meta,
-    body:not(.is-ipad) #p-today    .item.compact .g-tag,
-    body:not(.is-ipad) #p-today    .item.compact .cycle-suf,
-    body:not(.is-ipad) #p-today    .item.compact .due-sel,
-    body:not(.is-ipad) #p-today    .item.compact .meta,
-    body:not(.is-ipad) #p-routine  .item.compact .link-item-sel,
-    body:not(.is-ipad) #p-routine  .item.compact .g-tag,
-    body:not(.is-ipad) #p-routine  .item.compact .r-state,
-    body:not(.is-ipad) #p-routine  .item.compact .r-range,
-    body:not(.is-ipad) #p-routine  .item.compact .r-streak,
-    body:not(.is-ipad) #p-routine  .item.compact .meta,
-    body:not(.is-ipad) #p-routine  .item.compact .due-sel,
-    body:not(.is-ipad) #p-done     .item.compact .g-tag,
-    body:not(.is-ipad) #p-done     .item.compact .pts,
-    body:not(.is-ipad) #p-done     .item.compact .meta,
-    body:not(.is-ipad) #p-done     .item.compact .done-detail{ display:none !important; }
-    /* 当天怪物：桌面的「操作」下拉 + 多日「天数」按钮 → 手机上换成一排直选按钮 */
-    body:not(.is-ipad) #p-today .item.kind-today .acts{ display:none !important; }
-    body:not(.is-ipad) #p-today .item.kind-today .acts.acts-phone{ display:inline-flex !important; gap:5px !important; }
-  }
 
   /* ===== 模块头（整行可点击折叠） ===== */
   .p-head{
@@ -1592,6 +1565,33 @@
 
 <script src="supabase-js.js"></script>
 <script>
+/* ===== v=20261010-1740 手机极简模式（放在脚本最开头，确保任何渲染发生前已求值）=====
+   手机只是查看用：进阶区怪物行只渲染 编辑/删除，其余字段与操作一律不输出（DOM 里就没有）。
+   判定：触屏设备 + 窄屏(≤820) + 非 iPad。
+   - iPad 竖屏 768/810/820px 虽窄，但用户要求 iPad 不变 → UA 显式排除（含 iPadOS 13+ 桌面模式 UA）；
+   - Mac 无触屏，即使把窗口拉窄也保持完整功能（满足「mac 端不要变」）。 */
+function _isPad(){
+  const ua=navigator.userAgent||"";
+  if(/iPad/i.test(ua)) return true;
+  if(navigator.platform==="MacIntel" && (navigator.maxTouchPoints||0)>1) return true;   // iPadOS 13+ 桌面模式
+  return false;
+}
+function _calcPhone(){
+  try{
+    if(_isPad()) return false;
+    const touch = ("ontouchstart" in window) || (navigator.maxTouchPoints||0)>0;
+    return touch && window.matchMedia("(max-width:820px)").matches;
+  }catch(e){ return false; }
+}
+let IS_PHONE = _calcPhone();
+/* 断卡变化（旋转 / 缩放窗口）时重算并整页重渲染，保证模式跟手 */
+(function(){
+  let last=IS_PHONE;
+  const reflow=()=>{ const p=_calcPhone(); if(p!==last){ last=p; IS_PHONE=p; renderAll(); } };
+  window.addEventListener("resize", reflow);
+  window.addEventListener("orientationchange", ()=>setTimeout(reflow,300));
+})();
+
 const KEY = "workbench_v1";
 
 /* ===== 多端同步配置（默认关闭） =====
@@ -2712,6 +2712,7 @@ function moveHabitSeq(id, newSeq){
 function linkedItem(id){ return goalById(id) || habitById(id); }
 function linkedImpCoef(id){ const it=linkedItem(id); if(!it) return 1; const v=goalImp(it).v; return v==="1"?1.5 : v==="2"?1.25 : 1; }
 function linkedTagHtml(t){
+  if(IS_PHONE) return "";          /* v=20261010-1740 手机极简：不渲染关联标签 */
   if(!t.goalId) return "";
   const it=linkedItem(t.goalId); if(!it) return "";
   const isHabit = !!habitById(t.goalId);
@@ -2721,6 +2722,7 @@ function linkedTagHtml(t){
 }
 /* 行内「挂关联」下拉：单一下拉同时列出目标(🎯)与习惯(🌀)，值为 id，解析类型 */
 function linkItemSelHtml(t){
+  if(IS_PHONE) return "";          /* v=20261010-1740 手机极简：不渲染行内关联下拉 */
   const gs=(state.goals||[]).filter(g=>!g.doneAt || g.id===t.goalId);
   const hs=(state.habits||[]);
   const all=[...gs.map(g=>({it:g,ico:"🎯"})), ...hs.map(h=>({it:h,ico:"🌀"}))];
@@ -3503,9 +3505,9 @@ function renderBacklog(){
         </select>
         <div class="title">${esc(t.title)}</div>
         ${linkItemSelHtml(t)}
-        ${t.date?`<span class="meta">${fmtTime(t.date)}</span>`:''}
+        ${IS_PHONE?'':(t.date?`<span class="meta">${fmtTime(t.date)}</span>`:'')}
         <div class="acts">
-          <button class="icon-btn" data-act="toToday" data-id="${t.id}">加入今天</button>
+          ${IS_PHONE?'':`<button class="icon-btn" data-act="toToday" data-id="${t.id}">加入今天</button>`}
           <button class="icon-btn" data-act="editBack" data-id="${t.id}">编辑</button>
           <button class="icon-btn" data-act="delBack" data-id="${t.id}">删除</button>
         </div>
@@ -3774,11 +3776,17 @@ document.getElementById("list-today").addEventListener("click",e=>{
     save(); renderExec(); renderToday();
     return;
   }
-  if(b.dataset.act==="tSkip"){
-    const t=state.today.find(x=>x.id===id); if(!t) return;
-    t.skipped=!t.skipped;
-    save(); renderToday(); renderExec(); refreshStats();
-    toast(t.skipped?"已失败，今天不再计入「今日」（仍保留在表中）":"已恢复，重新计入今日","ok");
+  /* v=20261010-1740 当天表里的每日怪物行（手机极简下的 编辑/删除，与「每日怪物」列表同源） */
+  if(b.dataset.act==="rtEdit"){
+    const r=(state.routines||[]).find(x=>x.id===id);
+    if(r) editTaskFields(r, ()=>{ renderRoutines(); renderToday(); renderGoals(); renderHabits(); });
+    return;
+  }
+  if(b.dataset.act==="rtDel"){
+    const r=(state.routines||[]).find(x=>x.id===id); if(!r) return;
+    if(!confirm(`删除每日怪物「${r.title}」？已获得的积分不受影响`)) return;
+    state.routines=(state.routines||[]).filter(x=>x.id!==id);
+    save(); renderRoutines(); renderToday();
     return;
   }
   if(b.dataset.act==="finish") completeTask(id);
@@ -3829,12 +3837,15 @@ function routineItemHtml(r, sk){
     : `<select class="due-sel" data-id="${r.id}" data-kind="routine" title="截止时间（可选）">${dueOptions(r.due)}</select>`;
   const y=new Date(); y.setDate(y.getDate()-1); const yds=dayStr(y);
   const ySkip=(r.doneDates||{})[yds]==="skip";   // 昨天跳过 → 今天提供反悔入口
-  const acts = sk
-    ? `<button class="icon-btn" data-act="rSkip" data-id="${r.id}">恢复</button>`
-    : `<button class="icon-btn ok" data-act="rFinish" data-id="${r.id}">✓ 击败</button><button class="icon-btn" data-act="rSkip" data-id="${r.id}">失败</button>${ySkip?`<button class="icon-btn" data-act="rRestoreYest" data-id="${r.id}" title="取消昨天（${yds.slice(5).replace("-","/")}）的跳过">恢复</button>`:''}`;
+  /* v=20261010-1740 手机极简：只留 编辑/删除（该行是当日实例，编辑/删除与「每日怪物」列表同源） */
+  const acts = IS_PHONE
+    ? `<button class="icon-btn" data-act="rtEdit" data-id="${r.id}">编辑</button><button class="icon-btn" data-act="rtDel" data-id="${r.id}">删除</button>`
+    : (sk
+      ? `<button class="icon-btn" data-act="rSkip" data-id="${r.id}">恢复</button>`
+      : `<button class="icon-btn ok" data-act="rFinish" data-id="${r.id}">✓ 击败</button><button class="icon-btn" data-act="rSkip" data-id="${r.id}">失败</button>${ySkip?`<button class="icon-btn" data-act="rRestoreYest" data-id="${r.id}" title="取消昨天（${yds.slice(5).replace("-","/")}）的跳过">恢复</button>`:''}`);
   return `<div class="item compact ${sk?'skip':''}" data-id="${r.id}" data-sort-key="routine">
     <div class="row1">
-      ${badge(r.diff)}${noSortMark(r)}<div class="title">${esc(r.title)}</div>${linkedTagHtml(r)}${dueHtml}${streak>0?`<span class="r-streak">已坚持 ${streak} 天</span>`:''}${r.end?`<span class="r-range">至 ${r.end.slice(5).replace("-","/")}</span>`:''}${sk?'<span class="meta">今天已失败</span>':''}
+      ${badge(r.diff)}${noSortMark(r)}<div class="title">${esc(r.title)}</div>${linkedTagHtml(r)}${IS_PHONE?'':dueHtml}${IS_PHONE?'':(streak>0?`<span class="r-streak">已坚持 ${streak} 天</span>`:'')}${IS_PHONE?'':(r.end?`<span class="r-range">至 ${r.end.slice(5).replace("-","/")}</span>`:'')}${IS_PHONE?'':(sk?'<span class="meta">今天已失败</span>':'')}
       <div class="acts">${acts}</div>
     </div>
   </div>`;
@@ -3855,15 +3866,20 @@ function todayItemHtml(t){
   const deferTag = t.deferDate ? `<span class="meta defer-tag">↪ 递延${t.deferDate.slice(5).replace("-","/")}</span>` : '';
   const ops = dn ? [["edit","编辑"],["del","删除"]] : [["edit","编辑"],["skip",sk?"恢复":"失败"],["defer",t.deferDate?"取消递延":"递延"],["del","删除"]];
   const menu = `<select class="more-sel" data-id="${t.id}" title="更多操作"><option value="">操作</option>${ops.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
-  /* v=20261010-1700 手机专用按钮组：把桌面的「操作」下拉里的 编辑/失败/删除 直接摊开，
-     与 ✓击败 并排；桌面 / iPad 下 .acts-phone 隐藏，仍用上面的 .acts（含多日按钮+操作下拉）。 */
-  const phoneActs=`<div class="acts acts-phone">
-        <button class="icon-btn ok" data-act="finish" data-id="${t.id}">${dn?'恢复':'✓ 击败'}</button>
-        ${dn?'':`<button class="icon-btn" data-act="tSkip" data-id="${t.id}">${sk?'恢复':'失败'}</button>`}
-        <button class="icon-btn" data-act="tEdit" data-id="${t.id}">编辑</button>
-        <button class="icon-btn" data-act="tDel" data-id="${t.id}">删除</button>
-      </div>`;
-  return `<div class="item compact kind-today ${sk?'skip':(dn?'done':'')}" data-id="${t.id}" data-sort-key="today">
+
+  /* v=20261010-1740 手机极简：截止/递延/多日/关联/状态文案/「操作」下拉/击败按钮 全不渲染，只留 编辑/删除 */
+  if(IS_PHONE){
+    return `<div class="item compact" data-id="${t.id}" data-sort-key="today">
+      <div class="row1">
+        ${badge(t.diff)}${noSortMark(t)}<div class="title">${esc(t.title)}</div>
+        <div class="acts">
+          <button class="icon-btn" data-act="tEdit" data-id="${t.id}">编辑</button>
+          <button class="icon-btn" data-act="tDel" data-id="${t.id}">删除</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  return `<div class="item compact ${sk?'skip':(dn?'done':'')}" data-id="${t.id}" data-sort-key="today">
     <div class="row1">
       ${badge(t.diff)}${noSortMark(t)}<div class="title">${esc(t.title)}</div>${linkedTagHtml(t)}${cycleSuf(t)}${dueHtml}${deferTag}${sk?'<span class="meta">已失败</span>':''}${dn?'<span class="meta">已击败</span>':''}
       <div class="acts">
@@ -3871,7 +3887,6 @@ function todayItemHtml(t){
         <button class="icon-btn ok" data-act="finish" data-id="${t.id}">${dn?'恢复':'✓ 击败'}</button>
         ${menu}
       </div>
-      ${phoneActs}
     </div>
   </div>`;
 }
@@ -3923,7 +3938,7 @@ function renderRoutines(){
     const streak=routineStreak(r);
     return `<div class="item compact" data-id="${r.id}" data-sort-key="routine">
       <div class="row1">
-        ${badge(r.diff)}<div class="title">${esc(r.title)}</div>${linkItemSelHtml(r)}${stTag}<span class="r-range">${range}</span>${streak>0?`<span class="r-streak">连续 ${streak} 天</span>`:''}${total>0?`<span class="meta">累计完成 ${total} 次</span>`:''}
+        ${badge(r.diff)}<div class="title">${esc(r.title)}</div>${linkItemSelHtml(r)}${IS_PHONE?'':stTag}${IS_PHONE?'':`<span class="r-range">${range}</span>`}${IS_PHONE?'':(streak>0?`<span class="r-streak">连续 ${streak} 天</span>`:'')}${IS_PHONE?'':(total>0?`<span class="meta">累计完成 ${total} 次</span>`:'')}
         <div class="acts">
           <button class="icon-btn" data-act="rEdit" data-id="${r.id}">编辑</button>
           <button class="icon-btn" data-act="rDel" data-id="${r.id}">删除</button>
@@ -4054,13 +4069,13 @@ function doneItemHtml(d){
   return `<div class="item compact done-item" data-id="${d.id}" data-sort-key="done">
     <div class="row1">
       ${badge(d.diff)}<div class="title">${esc(d.title)}</div>
-      ${d.diff===SPECIAL?'<span class="pts pro">↑晋级</span>':'<span class="pts">+'+donePoints(d)+(d.goalId?(' '+(habitById(d.goalId)?'🌀':'🎯')):'')+'</span>'}${linkedTagHtml(d)}<span class="meta">${fmtTime(d.doneAt)}</span>
+      ${IS_PHONE?'':(d.diff===SPECIAL?'<span class="pts pro">↑晋级</span>':'<span class="pts">+'+donePoints(d)+(d.goalId?(' '+(habitById(d.goalId)?'🌀':'🎯')):'')+'</span>')}${linkedTagHtml(d)}${IS_PHONE?'':`<span class="meta">${fmtTime(d.doneAt)}</span>`}
       <div class="acts">
-        <button class="icon-btn" data-act="restore" data-id="${d.id}">↩ 恢复</button>
+        ${IS_PHONE?'':`<button class="icon-btn" data-act="restore" data-id="${d.id}">↩ 恢复</button>`}
         <button class="icon-btn" data-act="delDone" data-id="${d.id}">删除</button>
       </div>
     </div>
-    ${stepsHtml}
+    ${IS_PHONE?'':stepsHtml}
   </div>`;
 }
 function renderDone(){
@@ -4809,15 +4824,7 @@ if(SYNCCFG.enabled){
   document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && _dirty) pushState(); });
 }
 
-/* v=20261010-1700 iPad 识别：iPad 竖屏宽度 ≤820 会落进手机的 media query，
-   但本次手机端排版调整要求 iPad 保持不变，故给 body 打 is-ipad，CSS 用 :not(.is-ipad) 排除。 */
-(function(){
-  try{
-    const ua=navigator.userAgent||"";
-    const isIPad=/iPad/i.test(ua)||(navigator.platform==="MacIntel"&&(navigator.maxTouchPoints||0)>1);
-    if(isIPad) document.body.classList.add("is-ipad");
-  }catch(e){}
-})();
+
 /* 手机端样式兜底注入：用 JS 在运行时插入带 !important 的样式，防止任何缓存导致旧 flex 布局生效 */
 (function mobileStyleOverride(){
   const id='mobile-style-override';
