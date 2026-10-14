@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261014-1500 修「手机端一直显示完整桌面版（极简模式不生效）」的真正根因：原判定依赖「触屏 + 视口≤820px」，一旦 iPhone 开了 Safari「请求桌面网站」，userAgent 伪装成 Mac、视口宽约 980px → 宽度条件不成立 → IS_PHONE=false → 手机照样渲染完整版。改为以 navigator.platform 为首选依据（「请求桌面网站」不会伪装 platform，始终为 "iPhone"），顺序为 ①platform=iPhone/iPod ②Android+Mobile/Windows Phone 等 ③兜底触屏+窄屏；iPad 与 Mac 判定不变。另加两道保险：①一次性清缓存自愈——首次加载时注销本机全部 SW + 清空全部 cache storage 再重载一次（localStorage 标记只做一次，不循环），彻底杜绝旧 SW 用旧 HTML 兜底；②右下角新增极小浅灰「版本号 · 手机模式/完整模式」自检徽标，便于一眼确认设备跑的是哪个版本、有没有识别成手机。同步模型沿用 v1421。-->
   <!-- v=20261014-1428 根治「手机 PWA 一直显示旧版 / 更新不生效」：根因=sw.js 注册 URL 不带版本号（浏览器/CDN 缓存旧 SW 脚本最长 10 分钟），且旧 SW 激活后页面不自动刷新→一直用旧缓存 HTML。修法 ①sw.js fetch 改 cache:'no-cache' 绕过 GitHub Pages max-age=600 与浏览器 HTTP 缓存，永远取最新资源；②sw.js 缓存名 wb-v38→wb-v39；③index.html 注册 sw.js?v=wb-v39（带版本号击穿 SW 脚本缓存）+ 监听 controllerchange 在新 SW 接管后 location.reload() 自动刷新 + 加载时 reg.update() 主动检查更新。此后每次部署手机端打开会自动更新，无需手动清缓存。同步模型沿用 v1421。-->
   <!-- v=20261010-1740 手机极简模式（用户：「关联习惯关联任务都不要，已坚持天数也不要，手机要极简模式；主要任务操作在 mac，手机只是查看」）：进阶区（可选/当天/每日/已击败）怪物行在手机上只渲染「编辑/删除」，其余一律不输出——关联标签/关联下拉、已坚持·连续天数、累计完成、起止日期、进行中/未开始/已结束、截止时间、递延、时间戳、得分、步骤、加入今天、✓击败/失败、↩恢复、多日按钮、「操作」下拉全部去掉；当天表里的每日怪物行同样只给 编辑/删除。做法由 v1700 的「CSS 隐藏」升级为「渲染期不输出」——DOM 里没有这些节点，不受级联/特异性/缓存影响。Mac/iPad 零影响：IS_PHONE 只在「触屏+窄屏+非 iPad」为真，Mac 窗口拉窄也保持完整功能。sw 缓存 wb-v37→wb-v38。同步模型沿用 v1421。-->
   <!-- v=20261010-1700 手机端（仅手机，iPad/Mac 不变）进阶区怪物行极简排版：可选怪物表/当天怪物表/每日怪物/已击败怪物区四张表，每行只留「难度徽标+标题+按钮」，取消 关联、连续N天、累计完成、起止日期、进行中/未开始/已结束、截止时间、递延、时间戳、得分、步骤 等所有字段内容；每行主操作（加入今天/✓击败/失败/↩恢复）保留，去掉手机端就没法干活。当天怪物表的「操作」下拉+多日按钮在手机上换成一排直选按钮（✓击败/失败/编辑/删除）。iPad 靠 body.is-ipad 排除（其竖屏宽度≤820 会落进本 media），Mac>820 本就不进 media，两端零影响。sw 缓存 wb-v36→wb-v37。同步模型沿用 v1421。-->
@@ -1566,11 +1567,16 @@
 
 <script src="supabase-js.js"></script>
 <script>
-/* ===== v=20261010-1740 手机极简模式（放在脚本最开头，确保任何渲染发生前已求值）=====
+/* ===== 手机极简模式判定（放在脚本最开头，确保任何渲染发生前已求值）=====
    手机只是查看用：进阶区怪物行只渲染 编辑/删除，其余字段与操作一律不输出（DOM 里就没有）。
-   判定：触屏设备 + 窄屏(≤820) + 非 iPad。
-   - iPad 竖屏 768/810/820px 虽窄，但用户要求 iPad 不变 → UA 显式排除（含 iPadOS 13+ 桌面模式 UA）；
-   - Mac 无触屏，即使把窗口拉窄也保持完整功能（满足「mac 端不要变」）。 */
+   判定优先级（v=20261014-1500 加固）：
+     ① navigator.platform === "iPhone"/"iPod" → 手机。关键：iPhone 开「请求桌面网站」时
+        userAgent 会伪装成 Mac、viewport 宽约 980px（旧的「触屏+≤820px」判定会失效，导致手机
+        渲染成完整桌面版），但 navigator.platform **不会被伪装**，始终为 "iPhone"。
+     ② Android + Mobile / Windows Phone 等 → 手机。
+     ③ 兜底：触屏 + 窄屏(≤820)。
+   排除 iPad：UA 含 iPad，或 iPadOS13+ 桌面模式(MacIntel + 多点触控) → 一律保持完整界面。
+   Mac 无触屏且 platform 非 iPhone，即使窗口拉窄也保持完整功能（满足「mac 端不要变」）。 */
 function _isPad(){
   const ua=navigator.userAgent||"";
   if(/iPad/i.test(ua)) return true;
@@ -1580,8 +1586,16 @@ function _isPad(){
 function _calcPhone(){
   try{
     if(_isPad()) return false;
+    const plat = navigator.platform || "";
+    const ua   = navigator.userAgent || "";
+    /* ① iPhone / iPod（不受「请求桌面网站」伪装影响） */
+    if(/^(iPhone|iPod)/i.test(plat)) return true;
+    /* ② 安卓手机及其它手机内核 */
+    if(/Android/i.test(ua) && /Mobile/i.test(ua)) return true;
+    if(/Windows Phone|IEMobile|Opera Mini|BlackBerry|BB10/i.test(ua)) return true;
+    /* ③ 兜底：触屏 + 窄屏 */
     const touch = ("ontouchstart" in window) || (navigator.maxTouchPoints||0)>0;
-    return touch && window.matchMedia("(max-width:820px)").matches;
+    return !!touch && window.matchMedia("(max-width:820px)").matches;
   }catch(e){ return false; }
 }
 let IS_PHONE = _calcPhone();
@@ -4864,26 +4878,74 @@ if(SYNCCFG.enabled){
 <script>
   // 注册 Service Worker：使 app 可安装到桌面/主屏，并支持离线打开
   // file:// 协议（如 Mac 桌面 App 打包版）下 SW 不可用，自动跳过
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    window.addEventListener('load', function () {
-      // 注册 URL 带 ?v= 版本号：绕过浏览器对 sw.js 的缓存，确保每次部署都能拉到新 SW
-      navigator.serviceWorker.register('sw.js?v=wb-v39').catch(function (e) { console.warn('SW 注册失败', e); });
-    });
+  (function () {
+    if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+
     // 新 SW 接管页面后自动刷新，确保用户立刻拿到最新版本
-    // （这是「手机 PWA 一直显示旧版」的根治手段：旧版只拦截不更新，新 SW 激活即 reload）
+    // （根治「旧 SW 一直兜底 → 永远显示旧版」）
     var _reloading = false;
     navigator.serviceWorker.addEventListener('controllerchange', function () {
       if (_reloading) return;
       _reloading = true;
-      location.reload();
+      try { window.location.reload(); } catch (e) {}
     });
-    // 页面已打开时，主动检查一次 SW 更新（配合上面的自动刷新）
-    if (navigator.serviceWorker.getRegistration) {
-      navigator.serviceWorker.getRegistration().then(function (reg) {
-        if (reg) { try { reg.update(); } catch (e) {} }
-      }).catch(function () {});
+
+    // 一次性「清缓存自愈」：把本机残留的旧 SW 与旧 cache storage 全部注销/删除后重载一次，
+    // 彻底排除「设备上的旧 SW 一直拦截并用旧 HTML 兜底」的情况。
+    // 用 localStorage 标记保证只做一次，不会循环；之后正常注册新 SW（离线能力不受影响）。
+    var PURGE_KEY = 'sw_purge_wb39';
+    window.addEventListener('load', function () {
+      var need = true;
+      try { need = localStorage.getItem(PURGE_KEY) !== '1'; } catch (e) {}
+      if (need) {
+        var finish = function () {
+          try { localStorage.setItem(PURGE_KEY, '1'); } catch (e) {}
+          setTimeout(function () { try { window.location.reload(); } catch (e) {} }, 60);
+        };
+        var jobs = [];
+        try {
+          if (navigator.serviceWorker.getRegistrations) {
+            jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+              return Promise.all(rs.map(function (r) { return r.unregister(); }));
+            }));
+          }
+          if (window.caches && caches.keys) {
+            jobs.push(caches.keys().then(function (ks) {
+              return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+            }));
+          }
+        } catch (e) {}
+        Promise.all(jobs).then(finish, finish);
+        return;
+      }
+
+      // 注册 URL 带 ?v= 版本号：绕过浏览器对 sw.js 的缓存，确保每次部署都能拉到新 SW
+      navigator.serviceWorker.register('sw.js?v=wb-v39').catch(function (e) { console.warn('SW 注册失败', e); });
+      // 页面已打开时，主动检查一次 SW 更新（配合上面的自动刷新）
+      if (navigator.serviceWorker.getRegistration) {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg) { try { reg.update(); } catch (e) {} }
+        }).catch(function () {});
+      }
+    });
+  })();
+</script>
+<!-- v=20261014-1500 版本/模式自检徽标：右下角极小浅灰文字，一眼确认「跑的是哪个版本」+「是否被识别为手机模式」，避免反复误判是缓存还是代码问题。pointer-events:none 不拦点击。 -->
+<div id="ver-badge" style="position:fixed;right:6px;bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:99998;font-size:10px;line-height:1.3;color:#8b93a1;opacity:.55;background:rgba(255,255,255,.55);border-radius:4px;padding:1px 4px;pointer-events:none;user-select:none;letter-spacing:.2px"></div>
+<script>
+  (function () {
+    var V = '20261014-1500';
+    function paint() {
+      var el = document.getElementById('ver-badge');
+      if (!el) return;
+      var mode = '完整模式';
+      try { mode = (typeof IS_PHONE !== 'undefined' && IS_PHONE) ? '手机模式' : '完整模式'; } catch (e) {}
+      el.textContent = 'v' + V + ' · ' + mode;
     }
-  }
+    paint();
+    window.addEventListener('resize', paint);
+    window.addEventListener('orientationchange', function () { setTimeout(paint, 400); });
+  })();
 </script>
 </body>
 </html>
