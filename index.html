@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261014-1510 修「iPhone 仍显示完整桌面版」真正根因（用户截图实锤：badge=「完整模式」即最新版已到、但没识别成手机）：iPhone 开 Safari「请求桌面网站」后 userAgent 与 navigator.platform 一起伪装成 Mac（platform=MacIntel、UA 无 iPhone），撞上旧版「Mac伪装+多点触控=iPad」排除规则 → 被当 iPad → 判成非手机。改用【屏幕短边 min(screen.width,screen.height)】区分：iPhone 全系 320~430pt、iPad 全系 768~1024pt，且 screen 尺寸是物理事实不受 UA/视口伪装影响——iPad 排除加条件 sw>=500，另增第⑤条「Mac 伪装+触屏+sw<500 → 实为 iPhone」兜底；判定顺序 ①UA含iPad ②Mac伪装+多点触控+sw≥500→iPad排除 ③platform/UA=iPhone/iPod ④Android+Mobile 等 ⑤Mac伪装+触屏+小屏 ⑥触屏+窄视口。手机模式下重申 viewport meta 试图拉回 device-width（被忽略也无副作用）。badge 版本号同步 1510。同步模型沿用 v1421。-->
   <!-- v=20261014-1500 修「手机端一直显示完整桌面版（极简模式不生效）」的真正根因：原判定依赖「触屏 + 视口≤820px」，一旦 iPhone 开了 Safari「请求桌面网站」，userAgent 伪装成 Mac、视口宽约 980px → 宽度条件不成立 → IS_PHONE=false → 手机照样渲染完整版。改为以 navigator.platform 为首选依据（「请求桌面网站」不会伪装 platform，始终为 "iPhone"），顺序为 ①platform=iPhone/iPod ②Android+Mobile/Windows Phone 等 ③兜底触屏+窄屏；iPad 与 Mac 判定不变。另加两道保险：①一次性清缓存自愈——首次加载时注销本机全部 SW + 清空全部 cache storage 再重载一次（localStorage 标记只做一次，不循环），彻底杜绝旧 SW 用旧 HTML 兜底；②右下角新增极小浅灰「版本号 · 手机模式/完整模式」自检徽标，便于一眼确认设备跑的是哪个版本、有没有识别成手机。同步模型沿用 v1421。-->
   <!-- v=20261014-1428 根治「手机 PWA 一直显示旧版 / 更新不生效」：根因=sw.js 注册 URL 不带版本号（浏览器/CDN 缓存旧 SW 脚本最长 10 分钟），且旧 SW 激活后页面不自动刷新→一直用旧缓存 HTML。修法 ①sw.js fetch 改 cache:'no-cache' 绕过 GitHub Pages max-age=600 与浏览器 HTTP 缓存，永远取最新资源；②sw.js 缓存名 wb-v38→wb-v39；③index.html 注册 sw.js?v=wb-v39（带版本号击穿 SW 脚本缓存）+ 监听 controllerchange 在新 SW 接管后 location.reload() 自动刷新 + 加载时 reg.update() 主动检查更新。此后每次部署手机端打开会自动更新，无需手动清缓存。同步模型沿用 v1421。-->
   <!-- v=20261010-1740 手机极简模式（用户：「关联习惯关联任务都不要，已坚持天数也不要，手机要极简模式；主要任务操作在 mac，手机只是查看」）：进阶区（可选/当天/每日/已击败）怪物行在手机上只渲染「编辑/删除」，其余一律不输出——关联标签/关联下拉、已坚持·连续天数、累计完成、起止日期、进行中/未开始/已结束、截止时间、递延、时间戳、得分、步骤、加入今天、✓击败/失败、↩恢复、多日按钮、「操作」下拉全部去掉；当天表里的每日怪物行同样只给 编辑/删除。做法由 v1700 的「CSS 隐藏」升级为「渲染期不输出」——DOM 里没有这些节点，不受级联/特异性/缓存影响。Mac/iPad 零影响：IS_PHONE 只在「触屏+窄屏+非 iPad」为真，Mac 窗口拉窄也保持完整功能。sw 缓存 wb-v37→wb-v38。同步模型沿用 v1421。-->
@@ -1568,37 +1569,48 @@
 <script src="supabase-js.js"></script>
 <script>
 /* ===== 手机极简模式判定（放在脚本最开头，确保任何渲染发生前已求值）=====
-   手机只是查看用：进阶区怪物行只渲染 编辑/删除，其余字段与操作一律不输出（DOM 里就没有）。
-   判定优先级（v=20261014-1500 加固）：
-     ① navigator.platform === "iPhone"/"iPod" → 手机。关键：iPhone 开「请求桌面网站」时
-        userAgent 会伪装成 Mac、viewport 宽约 980px（旧的「触屏+≤820px」判定会失效，导致手机
-        渲染成完整桌面版），但 navigator.platform **不会被伪装**，始终为 "iPhone"。
-     ② Android + Mobile / Windows Phone 等 → 手机。
-     ③ 兜底：触屏 + 窄屏(≤820)。
-   排除 iPad：UA 含 iPad，或 iPadOS13+ 桌面模式(MacIntel + 多点触控) → 一律保持完整界面。
-   Mac 无触屏且 platform 非 iPhone，即使窗口拉窄也保持完整功能（满足「mac 端不要变」）。 */
-function _isPad(){
-  const ua=navigator.userAgent||"";
-  if(/iPad/i.test(ua)) return true;
-  if(navigator.platform==="MacIntel" && (navigator.maxTouchPoints||0)>1) return true;   // iPadOS 13+ 桌面模式
-  return false;
-}
+   v=20261014-1510 修正（用户 iPhone 实测截图：badge 显示「完整模式」= 没识别成手机）：
+   上一版用「Mac伪装 + 多点触控 = iPad 排除」，但 iPhone 开「请求桌面网站」时
+   userAgent/navigator.platform 都会被伪装成 Mac（platform=MacIntel、UA 无 iPhone），
+   正好撞上这条排除规则 → 被当成 iPad → 判成非手机 → 渲染完整桌面版。
+   现改用【屏幕短边 screen.width/height 取 min】区分真假 iPad：
+     - iPhone 全系屏幕短边 320~430pt；iPad 全系 768~1024pt。且 screen.width 反映的是
+       物理屏幕点数，不受「请求桌面网站」UA/视口伪装影响 → 这是唯一稳定可靠的分界。
+   判定顺序：
+     ① UA 明示 iPad → 非 iPad 不算（平板保持完整界面）
+     ② Mac 伪装 + 多点触控 + 屏幕短边≥500pt → 真 iPad → 不算手机
+     ③ platform=iPhone/iPod 或 UA 含 iPhone/iPod → 手机
+     ④ UA 含 Android+Mobile / Windows Phone / BlackBerry 等 → 手机
+     ⑤ Mac 伪装 + 多点触控 + 屏幕短边<500pt → 实为 iPhone（桌面模式伪装）→ 手机
+     ⑥ 兜底：触屏 + 视口≤820px → 手机
+   Mac 无触屏 → ②⑤⑥都不中 → 完整界面；iPad → ①或②排除 → 完整界面。 */
 function _calcPhone(){
   try{
-    if(_isPad()) return false;
-    const plat = navigator.platform || "";
     const ua   = navigator.userAgent || "";
-    /* ① iPhone / iPod（不受「请求桌面网站」伪装影响） */
-    if(/^(iPhone|iPod)/i.test(plat)) return true;
-    /* ② 安卓手机及其它手机内核 */
+    const plat = navigator.platform || "";
+    const touch = ("ontouchstart" in window) || (navigator.maxTouchPoints||0) > 0;
+    let sw = 0;
+    try { sw = Math.min(window.screen && screen.width || 0, window.screen && screen.height || 0); } catch(e){}
+    /* ① UA 明示 iPad */
+    if(/iPad/i.test(ua)) return false;
+    /* ② 真 iPad：Mac 伪装 + 多点触控 + 大屏（排除桌面模式的 iPhone） */
+    if(plat==="MacIntel" && (navigator.maxTouchPoints||0)>1 && sw>=500) return false;
+    /* ③④ 明确手机标识 */
+    if(/^(iPhone|iPod)/i.test(plat) || /iPhone|iPod/i.test(ua)) return true;
     if(/Android/i.test(ua) && /Mobile/i.test(ua)) return true;
     if(/Windows Phone|IEMobile|Opera Mini|BlackBerry|BB10/i.test(ua)) return true;
-    /* ③ 兜底：触屏 + 窄屏 */
-    const touch = ("ontouchstart" in window) || (navigator.maxTouchPoints||0)>0;
+    /* ⑤ Mac 伪装 + 触屏 + 小屏 → 桌面模式下的 iPhone */
+    if(touch && sw>0 && sw<500) return true;
+    /* ⑥ 兜底：触屏 + 窄视口 */
     return !!touch && window.matchMedia("(max-width:820px)").matches;
   }catch(e){ return false; }
 }
 let IS_PHONE = _calcPhone();
+/* 手机模式下重申一次 viewport：iPhone「请求桌面网站」时 Safari 可能放大视口到 980px，
+   重写 meta 尝试拉回 device-width（若 Safari 忽略也无副作用），保证手机版式不跑偏 */
+if(IS_PHONE){
+  try{ const m=document.querySelector('meta[name="viewport"]'); if(m) m.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover'); }catch(e){}
+}
 /* 断卡变化（旋转 / 缩放窗口）时重算并整页重渲染，保证模式跟手 */
 (function(){
   let last=IS_PHONE;
@@ -4934,7 +4946,7 @@ if(SYNCCFG.enabled){
 <div id="ver-badge" style="position:fixed;right:6px;bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:99998;font-size:10px;line-height:1.3;color:#8b93a1;opacity:.55;background:rgba(255,255,255,.55);border-radius:4px;padding:1px 4px;pointer-events:none;user-select:none;letter-spacing:.2px"></div>
 <script>
   (function () {
-    var V = '20261014-1500';
+    var V = '20261014-1510';
     function paint() {
       var el = document.getElementById('ver-badge');
       if (!el) return;
