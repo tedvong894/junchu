@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261014-1520 手机端「多合一」操作键（用户：「要保留击败、失败这2个功能键，连同编辑、删除整合成1个键」）：手机上每个怪物行只渲染 1 个「⋯」键，点开底部操作面板给出该行全部可用操作——当天/每日＝击败、失败、编辑、删除；可选＝加入今天、编辑、删除；已击败＝恢复、删除。面板内调用的仍是各按钮原来的同一套逻辑（completeTask/skipRoutine/completeRoutine/editTaskFields…），与桌面行为完全一致，只是入口合并；样式为浅底低饱和贴底面板，避开 HomeIndicator 安全区。改动仅作用于 IS_PHONE，Mac/iPad 行内按钮排布完全不变。badge 版本号同步 1520。同步模型沿用 v1421。-->
   <!-- v=20261014-1510 修「iPhone 仍显示完整桌面版」真正根因（用户截图实锤：badge=「完整模式」即最新版已到、但没识别成手机）：iPhone 开 Safari「请求桌面网站」后 userAgent 与 navigator.platform 一起伪装成 Mac（platform=MacIntel、UA 无 iPhone），撞上旧版「Mac伪装+多点触控=iPad」排除规则 → 被当 iPad → 判成非手机。改用【屏幕短边 min(screen.width,screen.height)】区分：iPhone 全系 320~430pt、iPad 全系 768~1024pt，且 screen 尺寸是物理事实不受 UA/视口伪装影响——iPad 排除加条件 sw>=500，另增第⑤条「Mac 伪装+触屏+sw<500 → 实为 iPhone」兜底；判定顺序 ①UA含iPad ②Mac伪装+多点触控+sw≥500→iPad排除 ③platform/UA=iPhone/iPod ④Android+Mobile 等 ⑤Mac伪装+触屏+小屏 ⑥触屏+窄视口。手机模式下重申 viewport meta 试图拉回 device-width（被忽略也无副作用）。badge 版本号同步 1510。同步模型沿用 v1421。-->
   <!-- v=20261014-1500 修「手机端一直显示完整桌面版（极简模式不生效）」的真正根因：原判定依赖「触屏 + 视口≤820px」，一旦 iPhone 开了 Safari「请求桌面网站」，userAgent 伪装成 Mac、视口宽约 980px → 宽度条件不成立 → IS_PHONE=false → 手机照样渲染完整版。改为以 navigator.platform 为首选依据（「请求桌面网站」不会伪装 platform，始终为 "iPhone"），顺序为 ①platform=iPhone/iPod ②Android+Mobile/Windows Phone 等 ③兜底触屏+窄屏；iPad 与 Mac 判定不变。另加两道保险：①一次性清缓存自愈——首次加载时注销本机全部 SW + 清空全部 cache storage 再重载一次（localStorage 标记只做一次，不循环），彻底杜绝旧 SW 用旧 HTML 兜底；②右下角新增极小浅灰「版本号 · 手机模式/完整模式」自检徽标，便于一眼确认设备跑的是哪个版本、有没有识别成手机。同步模型沿用 v1421。-->
   <!-- v=20261014-1428 根治「手机 PWA 一直显示旧版 / 更新不生效」：根因=sw.js 注册 URL 不带版本号（浏览器/CDN 缓存旧 SW 脚本最长 10 分钟），且旧 SW 激活后页面不自动刷新→一直用旧缓存 HTML。修法 ①sw.js fetch 改 cache:'no-cache' 绕过 GitHub Pages max-age=600 与浏览器 HTTP 缓存，永远取最新资源；②sw.js 缓存名 wb-v38→wb-v39；③index.html 注册 sw.js?v=wb-v39（带版本号击穿 SW 脚本缓存）+ 监听 controllerchange 在新 SW 接管后 location.reload() 自动刷新 + 加载时 reg.update() 主动检查更新。此后每次部署手机端打开会自动更新，无需手动清缓存。同步模型沿用 v1421。-->
@@ -1179,6 +1180,18 @@
   .kd-dropdown-item .kd-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .kd-dropdown-item .kd-days{font-size:11px;color:var(--ink3);font-weight:600;flex:0 0 auto}
   .kd-dropdown-empty{padding:10px 10px;color:var(--ink3);font-size:12px;text-align:center}
+/* ===== v=20261014-1520 手机端「多合一」操作面板 =====
+   手机上每个怪物行只给 1 个「⋯」键，点开底部面板一次给出该行全部可用操作，
+   避免一行挤 4 个按钮。样式：浅底、低饱和、贴底、避开 HomeIndicator 安全区。 */
+.pact-overlay{position:fixed;inset:0;background:rgba(15,18,25,.32);z-index:100000;display:flex;align-items:flex-end;justify-content:center}
+.pact-sheet{width:100%;max-width:460px;background:#fff;border-radius:14px 14px 0 0;padding:4px 8px calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 24px rgba(0,0,0,.12)}
+.pact-title{font-size:12px;color:#8b93a1;padding:8px 12px 8px;border-bottom:1px solid #eef0f4;margin-bottom:4px;line-height:1.4;word-break:break-all}
+.pact-btn{display:block;width:100%;text-align:left;font-size:15px;padding:13px 14px;border:0;background:transparent;border-radius:10px;color:#1f2430;cursor:pointer}
+.pact-btn:active{background:#f1f3f7}
+.pact-btn.ok{color:#2f7a4f}
+.pact-btn.del{color:#b4453c}
+.pact-btn+.pact-btn{margin-top:2px}
+.pact-cancel{display:block;width:100%;margin-top:8px;padding:13px 14px;border:0;background:#f4f5f8;border-radius:10px;font-size:15px;color:#5a6070;cursor:pointer}
 </style>
 </head>
 <body data-page-node-id="AV2oOpzl66jAbdXl4FAQ1J">
@@ -1611,6 +1624,128 @@ let IS_PHONE = _calcPhone();
 if(IS_PHONE){
   try{ const m=document.querySelector('meta[name="viewport"]'); if(m) m.setAttribute('content','width=device-width, initial-scale=1.0, viewport-fit=cover'); }catch(e){}
 }
+
+/* ===== v=20261014-1520 手机端「多合一」操作键 =====
+   手机上每个怪物行只渲染 1 个「⋯」键，点开底部操作面板，一次给出该行全部可用操作：
+     当天 / 每日：击败、失败、编辑、删除
+     可选      ：加入今天、编辑、删除
+     已击败    ：恢复、删除
+   每项内部调用的仍是各按钮原来的同一套逻辑（completeTask / skipRoutine / editTaskFields…），
+   保证手机与桌面行为完全一致，只是入口合并了。 */
+function pactBtn(id, kind){
+  return `<button class="icon-btn pact" data-act="pact" data-id="${id}" data-kind="${kind}" title="操作">⋯</button>`;
+}
+function pactClose(){
+  const ov=document.getElementById("pact-overlay"); if(ov) ov.remove();
+}
+function pactItems(kind, id){
+  const items=[];
+  if(kind==="today"){
+    const t=state.today.find(x=>x.id===id); if(!t) return items;
+    items.push({label: t.done?"↩ 恢复":"✓ 击败", ok:true, run(){
+      completeTask(id); save(); renderToday();
+    }});
+    items.push({label: t.skipped?"↩ 取消失败":"失败", run(){
+      t.skipped=!t.skipped; save(); renderToday(); renderExec(); refreshStats();
+      toast(t.skipped?"已失败，今天不再计入「今日」（仍保留在表中）":"已恢复，重新计入今日","ok");
+    }});
+    items.push({label:"编辑", run(){
+      editTaskFields(t, ()=>{ renderToday(); renderExec(); renderGoals(); renderHabits(); });
+    }});
+    items.push({label:"删除", del:true, run(){
+      if(!confirm("删除这个当天怪物？")) return;
+      state.today=state.today.filter(x=>x.id!==id);
+      delete state.exec[id];
+      if(state.activeId===id) state.activeId=null;
+      save(); renderExec(); renderToday();
+    }});
+  } else if(kind==="routine"){
+    const r=(state.routines||[]).find(x=>x.id===id); if(!r) return items;
+    items.push({label:"✓ 击败", ok:true, run(){ completeRoutine(id); }});
+    items.push({label:"失败", run(){ skipRoutine(id); }});
+    items.push({label:"编辑", run(){
+      editTaskFields(r, ()=>{ renderRoutines(); renderToday(); renderGoals(); renderHabits(); });
+    }});
+    items.push({label:"删除", del:true, run(){
+      if(!confirm(`删除每日怪物「${r.title}」？已获得的积分不受影响`)) return;
+      state.routines=(state.routines||[]).filter(x=>x.id!==id);
+      save(); renderRoutines(); renderToday();
+    }});
+  } else if(kind==="backlog"){
+    const t=state.backlog.find(x=>x.id===id); if(!t) return items;
+    items.push({label:"加入今天", ok:true, run(){
+      state.backlog=state.backlog.filter(x=>x.id!==id);
+      state.today.push({id:t.id,title:t.title,diff:t.diff,fromBack:true,goalId:t.goalId,decompSeq:t.decompSeq,date:t.date||Date.now()});
+      if(!state.activeId) setActive(t.id);
+      renderToday(); setActiveMod("today");
+      save(); renderBacklog();
+    }});
+    items.push({label:"编辑", run(){
+      editTaskFields(t, ()=>{ renderBacklog(); renderGoals(); renderHabits(); });
+    }});
+    items.push({label:"删除", del:true, run(){
+      if(t.decompSeq){ toast("该怪物由「目标分解」自动管理，请在目标分解区删除对应动作","warn"); return; }
+      state.backlog=state.backlog.filter(x=>x.id!==id);
+      save(); renderBacklog();
+    }});
+  } else if(kind==="done"){
+    const d=state.done.find(x=>x.id===id); if(!d) return items;
+    items.push({label:"↩ 恢复", ok:true, run(){
+      state.done=state.done.filter(x=>x.id!==id);
+      delete state.exec[id];
+      if(d.routine && d.routineId){
+        const r=(state.routines||[]).find(x=>x.id===d.routineId);
+        if(r){ r.doneDates=r.doneDates||{}; delete r.doneDates[dayStr()]; }
+      } else {
+        const ex=state.today.find(x=>x.id===id);
+        if(ex){ ex.done=false; ex.skipped=false; }
+        else { state.today.push({id:d.id,title:d.title,diff:d.diff,fromBack:d.fromBack,goalId:d.goalId,date:d.doneAt||Date.now()}); }
+      }
+      renderToday(); renderRoutines();
+      save(); renderDone(); renderExec();
+    }});
+    items.push({label:"删除", del:true, run(){
+      state.done=state.done.filter(x=>x.id!==id);
+      save(); renderDone(); renderExec();
+    }});
+  }
+  return items;
+}
+function pactOpen(id, kind, title){
+  pactClose();
+  const items=pactItems(kind,id);
+  if(!items.length){ toast("该条目暂无可执行操作","warn"); return; }
+  const ov=document.createElement("div");
+  ov.className="pact-overlay"; ov.id="pact-overlay";
+  const sheet=document.createElement("div");
+  sheet.className="pact-sheet";
+  sheet.innerHTML=`<div class="pact-title">${esc(title||"")}</div>`;
+  items.forEach(it=>{
+    const b=document.createElement("button");
+    b.className="pact-btn"+(it.ok?" ok":"")+(it.del?" del":"");
+    b.textContent=it.label;
+    b.addEventListener("click",()=>{ pactClose(); try{ it.run(); }catch(e){ console.warn(e); } });
+    sheet.appendChild(b);
+  });
+  const cancel=document.createElement("button");
+  cancel.className="pact-cancel"; cancel.textContent="取消";
+  cancel.addEventListener("click",pactClose);
+  sheet.appendChild(cancel);
+  ov.appendChild(sheet);
+  ov.addEventListener("click",e=>{ if(e.target===ov) pactClose(); });
+  document.body.appendChild(ov);
+}
+/* 「⋯」键：点开操作面板（用标题提示当前是哪一条，避免误操作） */
+document.addEventListener("click",e=>{
+  const b=e.target.closest('button[data-act="pact"]'); if(!b) return;
+  e.stopPropagation();
+  const id=b.dataset.id, kind=b.dataset.kind;
+  let title="";
+  const row=b.closest(".item");
+  const tEl=row && row.querySelector(".title");
+  if(tEl) title=tEl.textContent||"";
+  pactOpen(id, kind, title);
+}, false);
 /* 断卡变化（旋转 / 缩放窗口）时重算并整页重渲染，保证模式跟手 */
 (function(){
   let last=IS_PHONE;
@@ -3534,9 +3669,7 @@ function renderBacklog(){
         ${linkItemSelHtml(t)}
         ${IS_PHONE?'':(t.date?`<span class="meta">${fmtTime(t.date)}</span>`:'')}
         <div class="acts">
-          ${IS_PHONE?'':`<button class="icon-btn" data-act="toToday" data-id="${t.id}">加入今天</button>`}
-          <button class="icon-btn" data-act="editBack" data-id="${t.id}">编辑</button>
-          <button class="icon-btn" data-act="delBack" data-id="${t.id}">删除</button>
+          ${IS_PHONE?pactBtn(t.id,"backlog"):`<button class="icon-btn" data-act="toToday" data-id="${t.id}">加入今天</button><button class="icon-btn" data-act="editBack" data-id="${t.id}">编辑</button><button class="icon-btn" data-act="delBack" data-id="${t.id}">删除</button>`}
         </div>
       </div>
     </div>`;
@@ -3864,9 +3997,9 @@ function routineItemHtml(r, sk){
     : `<select class="due-sel" data-id="${r.id}" data-kind="routine" title="截止时间（可选）">${dueOptions(r.due)}</select>`;
   const y=new Date(); y.setDate(y.getDate()-1); const yds=dayStr(y);
   const ySkip=(r.doneDates||{})[yds]==="skip";   // 昨天跳过 → 今天提供反悔入口
-  /* v=20261010-1740 手机极简：只留 编辑/删除（该行是当日实例，编辑/删除与「每日怪物」列表同源） */
+  /* v=20261014-1520 手机极简：只给 1 个「⋯」键 → 面板里给 击败/失败/编辑/删除 */
   const acts = IS_PHONE
-    ? `<button class="icon-btn" data-act="rtEdit" data-id="${r.id}">编辑</button><button class="icon-btn" data-act="rtDel" data-id="${r.id}">删除</button>`
+    ? pactBtn(r.id,"routine")
     : (sk
       ? `<button class="icon-btn" data-act="rSkip" data-id="${r.id}">恢复</button>`
       : `<button class="icon-btn ok" data-act="rFinish" data-id="${r.id}">✓ 击败</button><button class="icon-btn" data-act="rSkip" data-id="${r.id}">失败</button>${ySkip?`<button class="icon-btn" data-act="rRestoreYest" data-id="${r.id}" title="取消昨天（${yds.slice(5).replace("-","/")}）的跳过">恢复</button>`:''}`);
@@ -3894,15 +4027,13 @@ function todayItemHtml(t){
   const ops = dn ? [["edit","编辑"],["del","删除"]] : [["edit","编辑"],["skip",sk?"恢复":"失败"],["defer",t.deferDate?"取消递延":"递延"],["del","删除"]];
   const menu = `<select class="more-sel" data-id="${t.id}" title="更多操作"><option value="">操作</option>${ops.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
 
-  /* v=20261010-1740 手机极简：截止/递延/多日/关联/状态文案/「操作」下拉/击败按钮 全不渲染，只留 编辑/删除 */
+  /* v=20261014-1520 手机极简：截止/递延/多日/关联/状态文案/「操作」下拉 全不渲染，
+     行内只给 1 个「⋯」键，点开底部面板给出 击败/失败/编辑/删除（与桌面按钮同源） */
   if(IS_PHONE){
     return `<div class="item compact" data-id="${t.id}" data-sort-key="today">
       <div class="row1">
         ${badge(t.diff)}${noSortMark(t)}<div class="title">${esc(t.title)}</div>
-        <div class="acts">
-          <button class="icon-btn" data-act="tEdit" data-id="${t.id}">编辑</button>
-          <button class="icon-btn" data-act="tDel" data-id="${t.id}">删除</button>
-        </div>
+        <div class="acts">${pactBtn(t.id,"today")}</div>
       </div>
     </div>`;
   }
@@ -3967,8 +4098,7 @@ function renderRoutines(){
       <div class="row1">
         ${badge(r.diff)}<div class="title">${esc(r.title)}</div>${linkItemSelHtml(r)}${IS_PHONE?'':stTag}${IS_PHONE?'':`<span class="r-range">${range}</span>`}${IS_PHONE?'':(streak>0?`<span class="r-streak">连续 ${streak} 天</span>`:'')}${IS_PHONE?'':(total>0?`<span class="meta">累计完成 ${total} 次</span>`:'')}
         <div class="acts">
-          <button class="icon-btn" data-act="rEdit" data-id="${r.id}">编辑</button>
-          <button class="icon-btn" data-act="rDel" data-id="${r.id}">删除</button>
+          ${IS_PHONE?pactBtn(r.id,"routine"):`<button class="icon-btn" data-act="rEdit" data-id="${r.id}">编辑</button><button class="icon-btn" data-act="rDel" data-id="${r.id}">删除</button>`}
         </div>
       </div>
     </div>`;
@@ -4098,8 +4228,7 @@ function doneItemHtml(d){
       ${badge(d.diff)}<div class="title">${esc(d.title)}</div>
       ${IS_PHONE?'':(d.diff===SPECIAL?'<span class="pts pro">↑晋级</span>':'<span class="pts">+'+donePoints(d)+(d.goalId?(' '+(habitById(d.goalId)?'🌀':'🎯')):'')+'</span>')}${linkedTagHtml(d)}${IS_PHONE?'':`<span class="meta">${fmtTime(d.doneAt)}</span>`}
       <div class="acts">
-        ${IS_PHONE?'':`<button class="icon-btn" data-act="restore" data-id="${d.id}">↩ 恢复</button>`}
-        <button class="icon-btn" data-act="delDone" data-id="${d.id}">删除</button>
+        ${IS_PHONE?pactBtn(d.id,"done"):`<button class="icon-btn" data-act="restore" data-id="${d.id}">↩ 恢复</button><button class="icon-btn" data-act="delDone" data-id="${d.id}">删除</button>`}
       </div>
     </div>
     ${IS_PHONE?'':stepsHtml}
@@ -4946,7 +5075,7 @@ if(SYNCCFG.enabled){
 <div id="ver-badge" style="position:fixed;right:6px;bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:99998;font-size:10px;line-height:1.3;color:#8b93a1;opacity:.55;background:rgba(255,255,255,.55);border-radius:4px;padding:1px 4px;pointer-events:none;user-select:none;letter-spacing:.2px"></div>
 <script>
   (function () {
-    var V = '20261014-1510';
+    var V = '20261014-1520';
     function paint() {
       var el = document.getElementById('ver-badge');
       if (!el) return;
