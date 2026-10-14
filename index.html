@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261014-1428 根治「手机 PWA 一直显示旧版 / 更新不生效」：根因=sw.js 注册 URL 不带版本号（浏览器/CDN 缓存旧 SW 脚本最长 10 分钟），且旧 SW 激活后页面不自动刷新→一直用旧缓存 HTML。修法 ①sw.js fetch 改 cache:'no-cache' 绕过 GitHub Pages max-age=600 与浏览器 HTTP 缓存，永远取最新资源；②sw.js 缓存名 wb-v38→wb-v39；③index.html 注册 sw.js?v=wb-v39（带版本号击穿 SW 脚本缓存）+ 监听 controllerchange 在新 SW 接管后 location.reload() 自动刷新 + 加载时 reg.update() 主动检查更新。此后每次部署手机端打开会自动更新，无需手动清缓存。同步模型沿用 v1421。-->
   <!-- v=20261010-1740 手机极简模式（用户：「关联习惯关联任务都不要，已坚持天数也不要，手机要极简模式；主要任务操作在 mac，手机只是查看」）：进阶区（可选/当天/每日/已击败）怪物行在手机上只渲染「编辑/删除」，其余一律不输出——关联标签/关联下拉、已坚持·连续天数、累计完成、起止日期、进行中/未开始/已结束、截止时间、递延、时间戳、得分、步骤、加入今天、✓击败/失败、↩恢复、多日按钮、「操作」下拉全部去掉；当天表里的每日怪物行同样只给 编辑/删除。做法由 v1700 的「CSS 隐藏」升级为「渲染期不输出」——DOM 里没有这些节点，不受级联/特异性/缓存影响。Mac/iPad 零影响：IS_PHONE 只在「触屏+窄屏+非 iPad」为真，Mac 窗口拉窄也保持完整功能。sw 缓存 wb-v37→wb-v38。同步模型沿用 v1421。-->
   <!-- v=20261010-1700 手机端（仅手机，iPad/Mac 不变）进阶区怪物行极简排版：可选怪物表/当天怪物表/每日怪物/已击败怪物区四张表，每行只留「难度徽标+标题+按钮」，取消 关联、连续N天、累计完成、起止日期、进行中/未开始/已结束、截止时间、递延、时间戳、得分、步骤 等所有字段内容；每行主操作（加入今天/✓击败/失败/↩恢复）保留，去掉手机端就没法干活。当天怪物表的「操作」下拉+多日按钮在手机上换成一排直选按钮（✓击败/失败/编辑/删除）。iPad 靠 body.is-ipad 排除（其竖屏宽度≤820 会落进本 media），Mac>820 本就不进 media，两端零影响。sw 缓存 wb-v36→wb-v37。同步模型沿用 v1421。-->
   <!-- v=20261010-1650 目标分解新增「每个动作可回退」：已完成动作后加「↩ 回退」按钮，一键把它退回未完成——复位 decompActions[].doneAt、撤销那次击败的记录（当日表划线项去标记 / 已滚入历史的从 state.done 移除）并扣回对应得分（与「已击败」区「恢复」语义一致）；回退后若该动作成为最靠前未完成动作，syncDecompBacklog 会自动重新为它生成怪物进入可选怪物区。另：击败时往 done 记录补存 decompSeq，供回退时精确找回对应记录（老数据无此字段按 目标+标题 兜底）。sw 缓存 wb-v35→wb-v36。同步模型沿用 v1421。-->
@@ -4865,8 +4866,23 @@ if(SYNCCFG.enabled){
   // file:// 协议（如 Mac 桌面 App 打包版）下 SW 不可用，自动跳过
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW 注册失败', e); });
+      // 注册 URL 带 ?v= 版本号：绕过浏览器对 sw.js 的缓存，确保每次部署都能拉到新 SW
+      navigator.serviceWorker.register('sw.js?v=wb-v39').catch(function (e) { console.warn('SW 注册失败', e); });
     });
+    // 新 SW 接管页面后自动刷新，确保用户立刻拿到最新版本
+    // （这是「手机 PWA 一直显示旧版」的根治手段：旧版只拦截不更新，新 SW 激活即 reload）
+    var _reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (_reloading) return;
+      _reloading = true;
+      location.reload();
+    });
+    // 页面已打开时，主动检查一次 SW 更新（配合上面的自动刷新）
+    if (navigator.serviceWorker.getRegistration) {
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (reg) { try { reg.update(); } catch (e) {} }
+      }).catch(function () {});
+    }
   }
 </script>
 </body>
