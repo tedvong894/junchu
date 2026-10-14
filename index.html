@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261010-1700 手机端（仅手机，iPad/Mac 不变）进阶区怪物行极简排版：可选怪物表/当天怪物表/每日怪物/已击败怪物区四张表，每行只留「难度徽标+标题+按钮」，取消 关联、连续N天、累计完成、起止日期、进行中/未开始/已结束、截止时间、递延、时间戳、得分、步骤 等所有字段内容；每行主操作（加入今天/✓击败/失败/↩恢复）保留，去掉手机端就没法干活。当天怪物表的「操作」下拉+多日按钮在手机上换成一排直选按钮（✓击败/失败/编辑/删除）。iPad 靠 body.is-ipad 排除（其竖屏宽度≤820 会落进本 media），Mac>820 本就不进 media，两端零影响。sw 缓存 wb-v36→wb-v37。同步模型沿用 v1421。-->
   <!-- v=20261010-1650 目标分解新增「每个动作可回退」：已完成动作后加「↩ 回退」按钮，一键把它退回未完成——复位 decompActions[].doneAt、撤销那次击败的记录（当日表划线项去标记 / 已滚入历史的从 state.done 移除）并扣回对应得分（与「已击败」区「恢复」语义一致）；回退后若该动作成为最靠前未完成动作，syncDecompBacklog 会自动重新为它生成怪物进入可选怪物区。另：击败时往 done 记录补存 decompSeq，供回退时精确找回对应记录（老数据无此字段按 目标+标题 兜底）。sw 缓存 wb-v35→wb-v36。同步模型沿用 v1421。-->
   <!-- v=20261010-1610 数字资产编辑面板重排 + 新增「资产收益情况」：①修丑根因——.asset-edit 原本不是 flex/grid，select 与 textarea 作为 inline 元素被挤到同一行、按钮又套在 .add-row 里继承了紫色渐变大按钮样式；改为「标签在上、控件在下」的表单栅格：资产名称整行 → 类型(128px)+收益一行两列 → 情况说明整行 → 底部操作行（删除=左侧安静文字键、取消/保存=右侧等高32px低饱和按钮）。②新增收益情况字段，label 与 placeholder 随类型联动：广告=月收入/年收入、收益账号=月收入、涨粉账号=累积粉丝、其它=收益情况；数据存 asset.income（老数据无此字段自动兼容），查看态以紫色小徽标展示。sw 缓存 wb-v34→wb-v35。同步模型沿用 v1421。-->
   <!-- v=20261010-1520 修复「文字输入类模块 编辑/删除 要点2次、第一次自动失效」：根因=每次云端拉取（开机/每30s轮询/每次窗口获焦）都无条件 state=云端 并整页 renderAll()，重渲染若落在一次点击的 mousedown~mouseup 之间，按钮节点被重建→浏览器不派发 click→第一次操作被吞。修法：①用 canonStr（递归排序 key，兼容 Supabase jsonb 不保序）比对云端内容，与 _lastCloudJson 一致则直接跳过、不换 state 不重渲染（但保留 trashPurge/rolloverDay 轻量维护，跨天滚动行为不变）；pushState 成功后同步刷新 _lastCloudJson。②renderAll() 加「按住不放则推迟」守卫（pointerup/mouseup/touchend 松手后补渲染），从根上杜绝点击被重渲染吃掉。同步语义不变（云端权威 + 本地编辑即推送，v1421）。sw 缓存 wb-v33→wb-v34。-->
@@ -686,6 +687,35 @@
     .item.compact .acts .icon-btn.ok{
       padding:5px 12px;
     }
+  }
+
+  /* ===== v=20261010-1700 手机端（仅手机；iPad / Mac 不变）进阶区怪物行极简排版 =====
+     可选怪物表 / 当天怪物表 / 每日怪物 / 已击败怪物区：每行只留「难度徽标 + 标题 + 按钮」，
+     取消 关联、连续 N 天、累计完成 N 次、起止日期、进行中/未开始/已结束、截止时间、
+     递延、时间戳、得分、步骤 等所有字段内容。按钮不动（主操作保留）。 */
+  .acts-phone{display:none}   /* 手机专用按钮组：桌面 / iPad 一律不显示 */
+  @media (max-width:820px){
+    /* 只砍“字段内容” */
+    body:not(.is-ipad) #p-backlog  .item.compact .link-item-sel,
+    body:not(.is-ipad) #p-backlog  .item.compact .meta,
+    body:not(.is-ipad) #p-today    .item.compact .g-tag,
+    body:not(.is-ipad) #p-today    .item.compact .cycle-suf,
+    body:not(.is-ipad) #p-today    .item.compact .due-sel,
+    body:not(.is-ipad) #p-today    .item.compact .meta,
+    body:not(.is-ipad) #p-routine  .item.compact .link-item-sel,
+    body:not(.is-ipad) #p-routine  .item.compact .g-tag,
+    body:not(.is-ipad) #p-routine  .item.compact .r-state,
+    body:not(.is-ipad) #p-routine  .item.compact .r-range,
+    body:not(.is-ipad) #p-routine  .item.compact .r-streak,
+    body:not(.is-ipad) #p-routine  .item.compact .meta,
+    body:not(.is-ipad) #p-routine  .item.compact .due-sel,
+    body:not(.is-ipad) #p-done     .item.compact .g-tag,
+    body:not(.is-ipad) #p-done     .item.compact .pts,
+    body:not(.is-ipad) #p-done     .item.compact .meta,
+    body:not(.is-ipad) #p-done     .item.compact .done-detail{ display:none !important; }
+    /* 当天怪物：桌面的「操作」下拉 + 多日「天数」按钮 → 手机上换成一排直选按钮 */
+    body:not(.is-ipad) #p-today .item.kind-today .acts{ display:none !important; }
+    body:not(.is-ipad) #p-today .item.kind-today .acts.acts-phone{ display:inline-flex !important; gap:5px !important; }
   }
 
   /* ===== 模块头（整行可点击折叠） ===== */
@@ -3730,6 +3760,27 @@ document.getElementById("list-today").addEventListener("click",e=>{
     return;
   }
   if(b.dataset.act==="exec"){ setActive(id); setActiveMod("exec"); }
+  /* v=20261010-1700 手机直选按钮（与「操作」下拉同源，摊开给手机端用） */
+  if(b.dataset.act==="tEdit"){
+    const t=state.today.find(x=>x.id===id);
+    if(t) editTaskFields(t, ()=>{ renderToday(); renderExec(); renderGoals(); renderHabits(); });
+    return;
+  }
+  if(b.dataset.act==="tDel"){
+    if(!confirm("删除这个当天怪物？")) return;
+    state.today=state.today.filter(x=>x.id!==id);
+    delete state.exec[id];
+    if(state.activeId===id) state.activeId=null;
+    save(); renderExec(); renderToday();
+    return;
+  }
+  if(b.dataset.act==="tSkip"){
+    const t=state.today.find(x=>x.id===id); if(!t) return;
+    t.skipped=!t.skipped;
+    save(); renderToday(); renderExec(); refreshStats();
+    toast(t.skipped?"已失败，今天不再计入「今日」（仍保留在表中）":"已恢复，重新计入今日","ok");
+    return;
+  }
   if(b.dataset.act==="finish") completeTask(id);
   save(); renderToday();
 });
@@ -3804,7 +3855,15 @@ function todayItemHtml(t){
   const deferTag = t.deferDate ? `<span class="meta defer-tag">↪ 递延${t.deferDate.slice(5).replace("-","/")}</span>` : '';
   const ops = dn ? [["edit","编辑"],["del","删除"]] : [["edit","编辑"],["skip",sk?"恢复":"失败"],["defer",t.deferDate?"取消递延":"递延"],["del","删除"]];
   const menu = `<select class="more-sel" data-id="${t.id}" title="更多操作"><option value="">操作</option>${ops.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select>`;
-  return `<div class="item compact ${sk?'skip':(dn?'done':'')}" data-id="${t.id}" data-sort-key="today">
+  /* v=20261010-1700 手机专用按钮组：把桌面的「操作」下拉里的 编辑/失败/删除 直接摊开，
+     与 ✓击败 并排；桌面 / iPad 下 .acts-phone 隐藏，仍用上面的 .acts（含多日按钮+操作下拉）。 */
+  const phoneActs=`<div class="acts acts-phone">
+        <button class="icon-btn ok" data-act="finish" data-id="${t.id}">${dn?'恢复':'✓ 击败'}</button>
+        ${dn?'':`<button class="icon-btn" data-act="tSkip" data-id="${t.id}">${sk?'恢复':'失败'}</button>`}
+        <button class="icon-btn" data-act="tEdit" data-id="${t.id}">编辑</button>
+        <button class="icon-btn" data-act="tDel" data-id="${t.id}">删除</button>
+      </div>`;
+  return `<div class="item compact kind-today ${sk?'skip':(dn?'done':'')}" data-id="${t.id}" data-sort-key="today">
     <div class="row1">
       ${badge(t.diff)}${noSortMark(t)}<div class="title">${esc(t.title)}</div>${linkedTagHtml(t)}${cycleSuf(t)}${dueHtml}${deferTag}${sk?'<span class="meta">已失败</span>':''}${dn?'<span class="meta">已击败</span>':''}
       <div class="acts">
@@ -3812,6 +3871,7 @@ function todayItemHtml(t){
         <button class="icon-btn ok" data-act="finish" data-id="${t.id}">${dn?'恢复':'✓ 击败'}</button>
         ${menu}
       </div>
+      ${phoneActs}
     </div>
   </div>`;
 }
@@ -4749,6 +4809,15 @@ if(SYNCCFG.enabled){
   document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden" && _dirty) pushState(); });
 }
 
+/* v=20261010-1700 iPad 识别：iPad 竖屏宽度 ≤820 会落进手机的 media query，
+   但本次手机端排版调整要求 iPad 保持不变，故给 body 打 is-ipad，CSS 用 :not(.is-ipad) 排除。 */
+(function(){
+  try{
+    const ua=navigator.userAgent||"";
+    const isIPad=/iPad/i.test(ua)||(navigator.platform==="MacIntel"&&(navigator.maxTouchPoints||0)>1);
+    if(isIPad) document.body.classList.add("is-ipad");
+  }catch(e){}
+})();
 /* 手机端样式兜底注入：用 JS 在运行时插入带 !important 的样式，防止任何缓存导致旧 flex 布局生效 */
 (function mobileStyleOverride(){
   const id='mobile-style-override';
