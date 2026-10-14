@@ -11,11 +11,14 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin) return;
 
   // 同源：网络优先，失败回退缓存
+  // cache:'no-cache' 强制每次都向服务器（/CDN）重新校验，绕开 GitHub Pages 的
+  // max-age=600 缓存与浏览器 HTTP 缓存，确保每次都拿到最新 HTML/资源，
+  // 彻底解决「手机 PWA 一直显示旧版、更新不生效」的问题。
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then(res => {
         const copy = res.clone();
-        caches.open('wb-v38').then(c => c.put(req, copy)).catch(() => {});
+        caches.open('wb-v39').then(c => c.put(req, copy)).catch(() => {});
         return res;
       })
       .catch(() => caches.match(req))
