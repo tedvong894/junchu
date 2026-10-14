@@ -10,6 +10,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="fOfs52c2lfrsP9ldS8Aja8" />
   <meta http-equiv="Pragma" content="no-cache" data-page-node-id="JFwBaiHgGwHEdzuMqL7lK3" />
   <meta http-equiv="Expires" content="0" data-page-node-id="MnFghoCTQFzEV2eSCbJToO" />
+  <!-- v=20261014-1540 手机端小菜单定位修正（用户：「要在复合按键的旁边，你又给我整顶上去了」）：上一版下方空间不足时 `top=a.top-h-6` 会把菜单翻到按钮上方、甚至甩到屏幕中部，用户感知为"顶上去"。改为 `top=Math.max(a.top, innerHeight-h-M)`——上限不超过按钮顶部，菜单永远贴着「⋯」按钮右对齐向下展开，放不下只向上收到按钮附近/屏幕底，绝不跑到按钮上方。badge 版本号同步 1540。同步模型沿用 v1421。-->
   <!-- v=20261014-1535 手机端「⋯」改为就地弹出小菜单（用户：「复合按钮的实现方式太丑了，希望是点击、弹出的方式，不是下方出现半个页面」）：删掉底部半屏 sheet（.pact-overlay/.pact-sheet/标题行/取消键），改为锚定在按钮旁的小浮层 .pact-pop——优先贴按钮下方弹出，下方空间不足自动翻到上方，左右夹在视口内不越界；12ms 淡入、白底浅边低饱和、圆角 10px；关闭方式为点别处/滚动/转屏/Esc，再点一次「⋯」也可收起。菜单项与行为完全不变（当天·每日＝击败/失败/编辑/删除，可选＝加入今天/编辑/删除，已击败＝恢复/删除）。Mac/iPad 不受影响（IS_PHONE 才渲染）。badge 版本号同步 1535。同步模型沿用 v1421。-->
   <!-- v=20261014-1520 手机端「多合一」操作键（用户：「要保留击败、失败这2个功能键，连同编辑、删除整合成1个键」）：手机上每个怪物行只渲染 1 个「⋯」键，点开底部操作面板给出该行全部可用操作——当天/每日＝击败、失败、编辑、删除；可选＝加入今天、编辑、删除；已击败＝恢复、删除。面板内调用的仍是各按钮原来的同一套逻辑（completeTask/skipRoutine/completeRoutine/editTaskFields…），与桌面行为完全一致，只是入口合并；样式为浅底低饱和贴底面板，避开 HomeIndicator 安全区。改动仅作用于 IS_PHONE，Mac/iPad 行内按钮排布完全不变。badge 版本号同步 1520。同步模型沿用 v1421。-->
   <!-- v=20261014-1510 修「iPhone 仍显示完整桌面版」真正根因（用户截图实锤：badge=「完整模式」即最新版已到、但没识别成手机）：iPhone 开 Safari「请求桌面网站」后 userAgent 与 navigator.platform 一起伪装成 Mac（platform=MacIntel、UA 无 iPhone），撞上旧版「Mac伪装+多点触控=iPad」排除规则 → 被当 iPad → 判成非手机。改用【屏幕短边 min(screen.width,screen.height)】区分：iPhone 全系 320~430pt、iPad 全系 768~1024pt，且 screen 尺寸是物理事实不受 UA/视口伪装影响——iPad 排除加条件 sw>=500，另增第⑤条「Mac 伪装+触屏+sw<500 → 实为 iPhone」兜底；判定顺序 ①UA含iPad ②Mac伪装+多点触控+sw≥500→iPad排除 ③platform/UA=iPhone/iPod ④Android+Mobile 等 ⑤Mac伪装+触屏+小屏 ⑥触屏+窄视口。手机模式下重申 viewport meta 试图拉回 device-width（被忽略也无副作用）。badge 版本号同步 1510。同步模型沿用 v1421。-->
@@ -1727,14 +1728,14 @@ function pactOpen(id, kind, anchor){
   });
   pop.style.visibility="hidden";
   document.body.appendChild(pop);
-  /* 定位：优先贴按钮下方；下方放不下翻到上方；左右夹在视口内 */
+  /* 定位：始终贴在「⋯」按钮旁——右对齐、向下展开；下方放不下时只向上收到按钮顶部 / 屏幕底，绝不到按钮上方（"顶上去"） */
   const M=8;
   const a=(anchor && anchor.getBoundingClientRect)
     ? anchor.getBoundingClientRect()
     : {left:innerWidth/2,right:innerWidth/2,top:innerHeight/2,bottom:innerHeight/2};
   const w=pop.offsetWidth, h=pop.offsetHeight;
   let top=a.bottom+6;
-  if(top+h>innerHeight-M) top=a.top-h-6;
+  if(top+h>innerHeight-M) top=Math.max(a.top, innerHeight-h-M);   // 上限不超过按钮顶部，杜绝菜单跑到按钮上方
   if(top<M) top=M;
   let left=a.right-w;
   if(left+w>innerWidth-M) left=innerWidth-w-M;
@@ -5101,7 +5102,7 @@ if(SYNCCFG.enabled){
 <div id="ver-badge" style="position:fixed;right:6px;bottom:calc(4px + env(safe-area-inset-bottom,0px));z-index:99998;font-size:10px;line-height:1.3;color:#8b93a1;opacity:.55;background:rgba(255,255,255,.55);border-radius:4px;padding:1px 4px;pointer-events:none;user-select:none;letter-spacing:.2px"></div>
 <script>
   (function () {
-    var V = '20261014-1535';
+    var V = '20261014-1540';
     function paint() {
       var el = document.getElementById('ver-badge');
       if (!el) return;
