@@ -1,19 +1,17 @@
 // 极简 service worker：满足 PWA 安装条件 + 离线首屏兜底
-// v20261014-1600 缓存策略调整：
-//  - 稳定静态资源（supabase-js.js / icon-* / manifest / favicon）走【缓存优先】，
-//    避免每次打开都重新下载 212KB 的 supabase-js.js，显著加快手机端启动与首次云端拉取。
-//  - 动态资源（index.html / sw.js）仍走【网络优先 + 强制校验】，
-//    保证每次部署手机端打开都能拿到最新页面，更新即时生效。
-//  - activate 时清理旧缓存（只保留 wb-v40），避免缓存堆积与陈旧资源。
+// v20261014-1601 回滚缓存策略（修复 v1600 引入的回归）：
+//   v1600 对静态资源改「缓存优先」，在缓存未命中且网络取回失败时返回空响应，
+//   导致 supabase-js.js 加载失败（supabase 未定义 → 点击刷新显示「未开启云同步」），
+//   同时 apple-touch-icon 也被取坏 → iOS 回退成默认文字图标。二者同源。
+//   现恢复为「网络优先 + 失败回退缓存」（v1545 已验证可用）：每次向服务器校验
+//   （GitHub Pages 未变时返回 304、不传 body，几乎无耗时），网络异常才用缓存兜底，
+//   绝不会返回空响应。激活时清理 wb-v41 之外全部缓存，确保旧的可能损坏的缓存被清掉。
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
   await self.clients.claim();
   const keys = await caches.keys();
-  await Promise.all(keys.filter(k => k !== 'wb-v40').map(k => caches.delete(k)));
+  await Promise.all(keys.filter(k => k !== 'wb-v41').map(k => caches.delete(k)));
 })()));
-
-// 稳定静态资源清单（路径末尾匹配，忽略查询串）
-const STATIC_RE = /\/(supabase-js\.js|icon-192\.png|icon-512\.png|manifest\.json|favicon\.ico)(\?.*)?$/;
 
 self.addEventListener('fetch', e => {
   const req = e.request;
@@ -22,26 +20,12 @@ self.addEventListener('fetch', e => {
   // 跨域请求直接透传（Supabase / 字体 CDN），不缓存
   if (url.origin !== self.location.origin) return;
 
-  // 稳定静态资源：缓存优先，未命中再网络并回填
-  if (STATIC_RE.test(url.pathname)) {
-    e.respondWith(
-      caches.open('wb-v40').then(c => c.match(req)).then(cached => {
-        if (cached) return cached;
-        return fetch(req).then(res => {
-          if (res && res.ok) { const cp = res.clone(); c.put(req, cp).catch(() => {}); }
-          return res;
-        }).catch(() => cached);
-      })
-    );
-    return;
-  }
-
-  // 动态资源（index.html / sw.js）：网络优先 + 强制校验，确保最新；失败回退缓存
+  // 同源：网络优先（强制校验，保证打开即更新），失败回退缓存；绝不返回空响应
   e.respondWith(
     fetch(req, { cache: 'no-cache' })
       .then(res => {
         const copy = res.clone();
-        caches.open('wb-v40').then(c => c.put(req, copy)).catch(() => {});
+        caches.open('wb-v41').then(c => c.put(req, copy)).catch(() => {});
         return res;
       })
       .catch(() => caches.match(req))
