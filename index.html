@@ -1235,7 +1235,7 @@
         <button class="reset-link" id="btn-more" title="更多">☰</button>
         <div class="more-menu" id="more-menu" style="display:none" data-page-node-id="572pyyDxj0H17ATWx6EFp2">
           <div class="more-item more-sync" data-page-node-id="KkQCHuvecfGfGrOyH9F8K0"><span id="sync-state-m" data-page-node-id="qHwaHOl3YFtt9yrSNwRMiL">本地</span></div>
-          <div class="more-item" id="more-refresh">🔄 刷新数据</div>
+          <div class="more-item" id="more-refresh">🔄 手动同步（推/拉云端）</div>
           <div class="more-item" id="more-export" data-page-node-id="pJghlGhtUiqXAt1ncOu8lX">导出备份</div>
           <div class="more-item" id="more-import" data-page-node-id="hVTNATSD9REReldCn0Nf87">导入备份</div>
           <div class="more-item more-danger" id="more-reset" data-page-node-id="2mQLqMlqgseouLgSPgolSN">清空数据</div>
@@ -1794,10 +1794,15 @@ document.addEventListener("click",e=>{
 
 const KEY = "workbench_v1";
 
-/* ===== 多端同步配置（默认关闭） =====
-   想开启手机⇄Mac 同步：把 enabled 改为 true，填入你的 Supabase 项目 url 与 anon key，
-   并在 Supabase SQL 编辑器执行本文件末尾的建表语句。board 用一串只有你自己知道的随机串。 */
-const SYNCCFG = { enabled:false, url:"https://gcwehwqcccmjxrqtolev.supabase.co", anon:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjd2Vod3FjY2NtanhycXRvbGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MTQzNDAsImV4cCI6MjEwMDE5MDM0MH0.X0X-75d1wPSTXECZDRVtkWVyDaj9ot9JLp_Qc2YamB8", board:"wb_b9ec3cbe71ef33096135c666" }; // 临时本地模式：Supabase 免费额度耗尽(2026-11)，恢复后改回 true 即可重新联网同步
+/* ===== 多端同步配置（本地优先 + 手动同步） =====
+   默认模式：enabled:true, auto:false
+     - enabled：云端是否可用（填你的 Supabase 项目 url 与 anon key；anon 是公开 key，可放前端）
+     - auto：是否自动同步。false = 启动不自动拉云端、保存不自动推云端、不轮询；
+             仅用户手动点「刷新数据 / 同步」时才与云端交互（push+pull 合并）。
+   这样即使 Supabase 限额/故障，本地数据照常使用、绝不丢失；想多端同步时手动点一下即可。
+   若需完全离线（连手动同步也不要），把 enabled 改为 false。
+   建表语句在本文件末尾。board 用一串只有你自己知道的随机串。 */
+const SYNCCFG = { enabled:true, auto:false, url:"https://gcwehwqcccmjxrqtolev.supabase.co", anon:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjd2Vod3FjY2NtanhycXRvbGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MTQzNDAsImV4cCI6MjEwMDE5MDM0MH0.X0X-75d1wPSTXECZDRVtkWVyDaj9ot9JLp_Qc2YamB8", board:"wb_b9ec3cbe71ef33096135c666" }; // 本地优先+手动同步(2026-11)：auto:false 防 Supabase 限额/故障影响本地
 
 let state = load();
 rolloverDay();   // 本地数据首次加载即清理历史已击败的当天怪物
@@ -1818,9 +1823,10 @@ function sbClient(){
   return _sb;
 }
 function setSync(t){ const el=document.getElementById("sync-state"); const el2=document.getElementById("sync-state-m"); if(el) el.textContent=t; if(el2) el2.textContent=t; }
-function pushState(){
+function pushState(force){
   if(!_pulled) return;            // 首次成功拉取云端前，绝不把本地状态回写覆盖云端
   const sb=sbClient(); if(!sb) return;
+  if(!force && !SYNCCFG.auto) return;   // 手动模式(auto:false)：仅 force=true（用户手动同步）才推送；保存/关页面等自动场景一律不推云端
   setSync("同步中…");
   clearTimeout(_pushTimer);
   _pushTimer=setTimeout(async()=>{
@@ -1877,7 +1883,7 @@ async function pullState(){
     const {data,error}=await sb.from("workbench_state").select("data,updated_at").eq("id",SYNCCFG.board).maybeSingle();
     if(error) throw error;
     /* 本地有未上云改动（已拉过云端之后）：只推本地、绝不被云端覆盖，避免刚做的编辑/跳过丢失 */
-    if(_dirty && _pulled){ pushState(); setSync("已同步"); _endBoot(); return; }
+    if(_dirty && _pulled){ pushState(true); setSync("已同步"); _endBoot(); return; }
     if(data&&data.data&&data.data.backlog){
       /* v=20261010-1520 关键修复「编辑/删除要点2次」：
          云端内容与上次所见一致时直接返回——不再用云端对象替换 state、不再整页 renderAll()。
@@ -1926,7 +1932,7 @@ async function pullState(){
       normalizeActiveHabitSeq();
       if(state.activeId && !state.exec[state.activeId]) state.exec[state.activeId]={steps:[],tracking:""};
       _pulled=true; _lastCloudJson=_cloudStr; persist(); renderAll(); setSync("已同步"); _endBoot();
-      if(pushMerged) pushState();   // 把离线新增推回云端
+      if(pushMerged) pushState(true);   // 把离线新增推回云端
     } else { _pulled=true; setSync("已同步"); _endBoot(); }
   }catch(e){ setSync("同步失败"); }
 }
@@ -5004,12 +5010,14 @@ document.addEventListener("gesturechange", e=>e.preventDefault());
 
 activeMod=null;  // 重置，避免初始调用误触发 toggle 折叠默认面板
 setActiveMod(_ui0.active && document.getElementById("p-"+_ui0.active) ? _ui0.active : "backlog");
-if(SYNCCFG.enabled) pullState();
-else _endBoot();                                  // 不走云同步：本地数据渲染完即结束 boot 抑制
+if(SYNCCFG.enabled && SYNCCFG.auto) pullState();
+else _endBoot();                                  // 手动/离线模式：本地数据渲染完即结束 boot 抑制
 setTimeout(_endBoot, 3000);                       // 兜底：云拉取挂起也不长期阻塞正常升级特效
 
+/* 手动/离线模式提示：本地优先，仅手动同步 */
+if(SYNCCFG.enabled && !SYNCCFG.auto) setSync("本地优先·手动同步");
 /* 数据自动保持最新：回到本页立即拉一次 + 每 30 秒后台拉一次（输入中自动跳过，不打断） */
-if(SYNCCFG.enabled){
+if(SYNCCFG.enabled && SYNCCFG.auto){
   window.addEventListener("focus", ()=>syncNow(false));
   document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") syncNow(false); });
   setInterval(()=>{ if(document.visibilityState==="visible") syncNow(false); }, 30000);
