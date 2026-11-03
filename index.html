@@ -1797,7 +1797,7 @@ const KEY = "workbench_v1";
 /* ===== 多端同步配置（默认关闭） =====
    想开启手机⇄Mac 同步：把 enabled 改为 true，填入你的 Supabase 项目 url 与 anon key，
    并在 Supabase SQL 编辑器执行本文件末尾的建表语句。board 用一串只有你自己知道的随机串。 */
-const SYNCCFG = { enabled:true, url:"https://gcwehwqcccmjxrqtolev.supabase.co", anon:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjd2Vod3FjY2NtanhycXRvbGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MTQzNDAsImV4cCI6MjEwMDE5MDM0MH0.X0X-75d1wPSTXECZDRVtkWVyDaj9ot9JLp_Qc2YamB8", board:"wb_b9ec3cbe71ef33096135c666" };
+const SYNCCFG = { enabled:false, url:"https://gcwehwqcccmjxrqtolev.supabase.co", anon:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdjd2Vod3FjY2NtanhycXRvbGV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MTQzNDAsImV4cCI6MjEwMDE5MDM0MH0.X0X-75d1wPSTXECZDRVtkWVyDaj9ot9JLp_Qc2YamB8", board:"wb_b9ec3cbe71ef33096135c666" }; // 临时本地模式：Supabase 免费额度耗尽(2026-11)，恢复后改回 true 即可重新联网同步
 
 let state = load();
 rolloverDay();   // 本地数据首次加载即清理历史已击败的当天怪物
